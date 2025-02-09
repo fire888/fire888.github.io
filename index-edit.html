@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- <link rel="icon" type="image/svg+xml" href="/vite.svg" /> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mine Viewer</title>
+      <style>
+        @font-face {
+          font-family: Philosopher;
+          src: url(./index-assets/Philosopher-Regular.ttf)
+        }
+        body {
+          font-family: Philosopher;
+          color: #223495;
+        }
+        .app {
+            margin-bottom: 100px;
+        }
+        .content * {
+            margin: 10px;
+            display: block;
+        }
+        .view-list-item {
+          display: flex;
+          flex-direction: column;
+          border: 1px solid rgb(255, 255, 255);
+          background-color: #b0b0b0;
+        }
+        .red {
+          background-color: #d76b6b;
+        }
+        .view-list-item img {
+            max-width: 100px;
+            max-height: 100px;
+            min-width: 100px;
+            min-height: 100px;
+        }
+        .view-list-item:hover {
+          border: 1px solid red;
+          cursor: pointer;
+        }
+        .edit-node {
+          display: flex;
+          flex-direction: column; 
+          border: #223495 1px solid;
+          margin: 5px;            
+        }
+        .edit-node > * {
+            margin: 2px;
+            max-width: 400px;
+        }
+        .code {
+            font-family: monospace;
+            background: #f4f4f4;
+            padding: 2px 4px;
+            border-radius: 4px;
+            white-space: pre-wrap;       /* Preserve whitespace but allow wrapping */
+            word-wrap: break-word;       /* Break long words to avoid horizontal scroll */
+        }
+        .alert {
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            position: fixed;
+            z-index: 5;
+            background-color: #62626282;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            align-content: center;
+        }
+        .pager {
+          display: flex;
+          flex-direction: row;
+          gap: 5px;
+          justify-content: center;
+          font-size: 22px;
+          color: rgb(146, 0, 0);
+          font-weight: bold;
+          cursor: pointer;
+          flex-wrap: wrap;
+        }
+    </style>
+  </head>
+  <body>
+    <!-- <div class="nav">
+      <button id="code">code</button>
+      <button id="zbrush">zbrush</button>
+      <button id="design">design</button>
+      <button id="art">art</button>
+    </div> -->
+    <button class="add-new-node">[+] add node</button>
+    <div class="edit-node"></div>
+    <div class="content"></div>
+    <script type="module" src="./index-assets/main-edit.js"></script>
+  </body>
+</html>
