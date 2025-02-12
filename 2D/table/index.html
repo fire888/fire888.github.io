@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <style>  
+   @font-face {
+    font-family: t; 
+    src: url(kull.ttf); 
+   }
+      @font-face {
+    font-family: m2; 
+    src: url(m2.ttf); 
+   }
+
+   
+   .grass { font-family: Arial; color: #2c2b19;  font-size: 95px; margin: 0; padding:0; text-shadow: #84844e 3px 3px 1px;}
+   .zombie { font-family: m2; color: #ff8800;font-size: 60px; margin: 0; padding:0; 	text-shadow: #151511 3px 3px 1px;}  
+   .home {font-family: m2; color: #770c0e; font-size: 80px; margin: 0; padding:0; text-shadow: #151511 3px 3px 1px;}
+   .death {font-family: t; color: white; font-size: 85px; margin: 0; padding:0; 	text-shadow: #151511 3px 3px 1px;}  
+   .tree { font-family: m2; color: #2c2b19; font-size: 60px; margin: 0; padding:0; 	text-shadow: #84844e 3px 3px 1px;}   
+   
+   body {
+    font-family: m2; 
+	background-color: #45570d; align: center;
+    align: center;
+   }   
+   table {margin: 0; padding:0; margin: auto;}
+   tbody {margin: 0; padding:0; border:5px;}
+   td {width: 90px; margin: 0; padding:0; text-align: center;}
+   tr {height: 90px; margin: 0; padding:0;}
+   H1 { font-family: t; font-weight: normal; font-size: 60px; padding:0; margin:0;}
+  </style>
+</head><body>
+<script>
+// create place
+windowH=screen.height;
+windowW=document.body.clientWidth; 
+//windowH=document.body.clientHeight;  
+// windowW=screen.width;
+var tablNum = 0;   
+var tableRows = Math.floor(windowH/100-5);
+var tableColumns = Math.floor(windowW/100);
+document.write('<table align="center"  border="0px" ><tbody>');
+for (var tRow = 0; tRow <= tableRows; tRow++ ) 
+{
+  document.write('<tr>');
+  for (var tableD = 0; tableD <= tableColumns; tableD++ )
+  {
+    document.write("<td id=t" + tablNum + "><span class='grass'>.</span> </td>");
+	tablNum++;
+  }
+  document.write('</tr>');
+}
+document.write('</tbody></table>'); 
+
+//create avatars
+var avatarT = ['A','a','B','b','C','c','D','d','E','e','F','f','G','g','I','i','J','j','K','k','L','l','M','m','N','n','O','o','P','p','Q','q','R','r','S','s','T','t','V','v','W','w','X','x','Y','y','Z','z'];
+var avatarD = ['A','a','B','b','C','c','D','d','E','e','F','f','G','g','I','i','J','j','K','k','L','l','M','m','N','n','O','o','P','p','Q','q','R','r','S','s','T','t','V','v','W','w','X','x','Y','y','Z','z']; 
+var avatarZ = ['A','a','B','b','C','c','D','d','E','e','F','f','G','g','I','i','J','j','K','k','L','l','M','m','N','n','O','o','P','p','Q','q','R','r','S','s','T','t','V','v','W','w','X','x','Y','y','Z','z'];
+var avatarG = "<span class='grass'>.</span>"
+
+//constructor zombie
+function Zombie(pos)
+{
+   this.life = true;
+   this.podclass = "zombie";
+   this.pos = pos;
+   this.newP = 0;
+   this.oldP = 0;
+   this.posId = "t"+ this.pos;
+   a = Math.floor(Math.random()*avatarZ.length);
+   this.avatar = "<span class='zombie'>" + avatarZ[a]+ "</span>";
+   elem = document.getElementById(this.posId);
+   elem.innerHTML = this.avatar;    
+   this.createNewP = function()
+  {
+      ii = Math.floor(Math.random()*5)+1;
+ 	  switch (ii) 
+	  {
+          case 1:
+	         this.newP = this.pos-1;
+          break;
+          case 2:
+	         this.newP = this.pos+1;
+          break;				 
+          case 3:
+              if (this.pos>tableColumns)
+              { 
+	             this.newP = this.pos-tableColumns-1;
+              }		  
+          break;
+          case 4:
+              if (this.pos<tablNum-tableColumns)
+              { 
+	             this.newP = this.pos+tableColumns+1;
+              } 		  
+	      break;
+	      case 5:
+	      break;
+	   }  
+  }
+  this.changeP = function()
+   {	  
+      this.oldP = this.pos;
+      this.pos = this.newP;
+      this.posId = 't'+this.oldP;
+      elem = document.getElementById(this.posId );
+      elem.innerHTML = avatarG;      
+      this.posId = "t"+this.pos;
+      elem = document.getElementById(this.posId);
+      elem.innerHTML = this.avatar; 	   
+   }
+}
+
+//constructor HomeZombie
+function zHome()
+{ 
+   this.life = true;
+   this.podclass = "zHome";
+   this.pos = 0;
+   this.newP = 0;
+   this.oldP = 0;
+   this.posId = "t"+ this.pos;
+   this.avatar = "<span class='home'> H <\span>";
+   
+   this.changeP = function()
+   {
+      this.newP=Math.floor(Math.random()*tablNum);	
+      this.oldP = this.pos;
+      this.pos = this.newP;
+      this.posId = 't'+this.oldP;
+      elem = document.getElementById(this.posId );
+      elem.innerHTML = avatarG;      
+      this.posId = "t"+this.pos;
+      elem = document.getElementById(this.posId);
+      elem.innerHTML = this.avatar;   	 
+   }
+   this.drawAwatar = function()
+   {
+      elem = document.getElementById(this.posId);
+      elem.innerHTML = this.avatar;   	 
+   }   
+}
+
+//constructor tree
+function Tree(pos)
+{
+   this.life = true;
+   this.podclass = "tree";
+   this.pos = pos;
+   this.posId = "t"+pos;
+   a = Math.floor(Math.random()*avatarT.length);
+   this.avatar = avatarT[a];
+   elem = document.getElementById(this.posId);
+   elem.innerHTML =  "<span class='tree'>" + this.avatar + "</tree>";    
+   this.changeP = function()
+   {
+   }
+}
+
+//constructor death
+function Death(pos)
+{
+   this.podclass = "death";
+   this.pos = pos;
+   this.posId = "t"+pos;
+   a = Math.floor(Math.random()*avatarD.length);
+   this.avatar = "<span class='death'>" + avatarD[a] + "</span>" ;
+   this.changeP = function()
+   {
+   }
+   this.drawAwatar = function()
+   {
+      elem = document.getElementById(this.posId);
+      elem.innerHTML = this.avatar;   	 
+   }     
+}
+
+//create objects
+allUnits = [];
+hZ = new zHome();
+hZ.changeP();
+allUnits.push(hZ);
+
+
+function updateGame()
+{
+   //delete objects
+   for (i=0; i<allUnits.length; i++)
+   {
+     if (allUnits[i].life == false)
+	 {
+	      corpse = allUnits[i];
+          allUnits.splice(i, 1); 
+          corpse = null;
+          i --;
+	 }
+   }
+
+   //create zombie
+   if ( Math.random()*10 < 1 )
+   {
+	    a =  hZ.pos ;
+	    zombie = new Zombie(a); 
+		allUnits.push(zombie);
+   }
+   //create tree
+   if ( Math.random()*10 < 1 )
+   {
+	    a =  Math.floor(Math.random()*tablNum);
+	    tree = new Tree(a); 
+		allUnits.push(tree);
+   }  
+
+  //change positions   
+  for (i=0; i<allUnits.length; i++)
+  {  
+     //home
+     if ( (Math.random()*40<1) && allUnits[i].podclass == "zHome" )
+     {
+        hZ.changeP();
+     }
+	 //zombie
+	 if ( (Math.random()*4<1) && allUnits[i].podclass == "zombie" )
+	 {
+       allUnits[i].createNewP();
+       for (ii=0; ii<allUnits.length; ii++)
+       {
+	     if(allUnits[ii].pos == allUnits[i].newP && allUnits[ii].podclass == "tree")
+		 {
+		   allUnits[ii].life=false;
+		   allUnits[i].life=false;	
+	       death = new Death(allUnits[ii].pos);	
+           allUnits.push(death);  		   
+		 }
+	     if(allUnits[ii].pos == allUnits[i].newP && allUnits[ii].podclass == "death")
+		 {
+		   allUnits[ii].life=false; 		   
+		 }		 
+	   }	   
+	   allUnits[i].changeP();	   
+	 } 
+   }
+   //draw home
+   hZ.drawAwatar(); 
+   //draw death
+   for (i=0; i<allUnits.length; i++)
+   {
+     if (allUnits[i].podclass == "death")
+	 {
+	  allUnits[i].drawAwatar();
+	 }
+   }  
+}
+
+var timerGame = setInterval( function() { updateGame(); }, 100 ); 
+</script>
+</body></html>

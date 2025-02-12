@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no">
+  <style type="text/css">
+
+  * {
+    padding: 0px;
+    margin: 0px;
+  }  
+
+  body {
+    color: white;
+    font-size: 25px;
+    background-color: black;
+    overflow-x: hidden;
+    overflow-y: hidden;
+  }
+
+
+
+
+
+
+
+  /* APPLICATION STYLES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */  
+  #app-webgl{
+    width: 100vw; 
+    height: 70vw; 
+    display: table;
+  }
+  #app-webgl #preloader, #app-webgl #slogan {
+    position: absolute;
+    top: 35vw;
+    width: 100vw;
+  }
+  #app-webgl #preloader {
+    text-align: center; 
+  }
+  #app-webgl #slogan {
+    padding-left: 10vw; 
+  } 
+  #app-webgl .show { 
+    display: block;  
+    animation: animatonShow 0.4s ease-out 1; 
+  }
+  #app-webgl .hide {
+    opacity: 0;
+    display: block;    
+    animation: animatonHide 0.4s ease-in 1; 
+  }  
+  #app-webgl .hidden {
+    display: none;
+  }
+  @keyframes animatonShow {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes animatonHide {
+    from { opacity: 1; }  
+    to { opacity: 0; }
+  }
+  /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */ 
+
+
+
+
+
+
+
+ </style>		
+</head>
+<body>
+
+
+
+
+
+
+
+<!-- APPLICATION CONTAINERS/SCRIPTS !!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->   
+<div id = 'app-webgl'>
+  <canvas id = 'webgl' class = 'hidden'></canvas>
+  <div id = 'preloader' class = 'show'>LOADING</div>
+  <div id = 'slogan' class = 'hidden'>WIRELESS COMMUNICATIONS</div> 
+</div>
+<script src = 'js/libs.min.js'></script>    
+<script src = 'js/main.min.js'></script>
+<!-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
+
+
+
+
+
+
+<!-- DELAY AFTER MOUSE SCROLL TO SHOW BOTTOM CONTENT  !!!!!!!!!!! -->   
+<script>
+  document.addEventListener( 'wheel', wheelMouseWindow, false );
+  document.addEventListener( 'touchstart', wheelMouseWindow, false);
+  function wheelMouseWindow () {
+    setTimeout( function(){
+      document.body.style.overflowY = 'auto';
+      document.removeEventListener( 'wheel', wheelMouseWindow, false );
+      document.removeEventListener( 'touchstart', wheelMouseWindow, false);
+    }, 2000 )
+  } 
+</script>
+<!-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
+
+
+
+
+
+
+
+
+Wireless communication, or sometimes simply wireless, is the transfer of information or power between two or more points that are not connected by an electrical conductor. The most common wireless technologies use radio waves. With radio waves distances can be short, such as a few meters for Bluetooth or as far as millions of kilometers for deep-space radio communications. It encompasses various types of fixed, mobile, and portable applications, including two-way radios, cellular telephones, personal digital assistants (PDAs), and wireless networking. Other examples of applications of radio wireless technology include GPS units, garage door openers, wireless computer mice, keyboards and headsets, headphones, radio receivers, satellite television, broadcast television and cordless telephones. 
+
+
+
+
+</body>
+</html>

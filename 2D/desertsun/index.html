@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <style>  
+   body {background-color:#DAA520;} 
+   @font-face {
+    font-family: avia; 
+    src: url(f9.ttf); 
+   } 
+    @font-face {
+    font-family: tech; 
+    src: url(nato.ttf); 
+   }   
+   .avia {font-family: avia; font-size:60px; color:#D4E2E2 } 
+   .tech {font-family: tech; font-size:60px; color:white; }    
+  
+   
+  </style>
+</head><body> 
+<!--<span class="tech">ABbCceFfGghiJjKkLlmnopstVvwyZ</span> -->
+<script>
+
+//alert(Math.abs(-10));
+var canvas;
+var context;
+window.onload = function() 
+{
+	   // Определение контекста рисования
+      // windowW=screen.width;
+       windowH=screen.height;
+        windowW=document.body.clientWidth; 
+        //windowH=document.body.clientHeight;    
+	   canvas = document.getElementById("canvas");
+	   canvas.width = windowW;
+	   canvas.height = windowH;
+       gameW = windowW - 70;
+       gameH = windowH;  	   
+	   context = canvas.getContext("2d");  
+
+	   createPics();
+	   createObjects();  		 
+	   // Обновляем холст через 0.02 секунды
+	   setTimeout("drawFrame()", 20);
+}
+
+function createPics()
+{
+	  pic2       = new Image();  
+      pic2.src = 'sun.svg';
+      pic2.onload = function() 
+      {  
+          context.drawImage(pic2, 10, 200, 50,50);
+      }		
+}
+
+function createObjects()
+{
+ modelsT = ['A','B','b','C','c','e','F','f','G','g','h','i','J','j','K','k','L','l','m','n','o','p','s','t','V','v','w','y','Z'];
+ models = ['A','a','B','b','C','c','D','d','E','e','F','f','G','g','I','i','H','h','J','j','K','r','L','l','M','m','N','n','O','o','Q','q','R','r','S','s','V','v','W','w','X','x','Y','y','Z','z'];
+ allUnits = [];
+ renderA = [];
+ renderT = [];
+ renderB = [];
+ renderN = [];
+ renderNL = []; 
+ picX = 10;
+}
+
+function Aviation(avatar, speed)
+{
+ this.life = true;
+ this.podclass = "avia";
+ this.avatar = avatar;
+ this.speed = speed; 
+ this.posX = Math.floor(Math.random()*gameW);
+ this.posY = gameH;
+ this.createBomb = false;
+ this.movie = function()
+ {
+    this.posY = this.posY - this.speed;
+    if (this.posY<-30)
+    {
+	  this.life = false;
+	}
+    if (Math.random()*30<1)
+    {
+	  this.createBomb = true;
+	}	
+ }
+ this.bombFalse = function()
+ {
+   this.createBomb = false;
+ }
+}
+
+function Tanks(avatar, speed)
+{
+ this.life = true;
+ this.podclass = "tanks";  
+ this.avatar = avatar;
+ this.speed = speed; 
+ this.posX = gameW+50;
+ this.posY = Math.floor(Math.random()*gameH);
+ this.movie = function()
+ {
+  this.posX = this.posX - this.speed;
+    if (this.posX<-30)
+    {
+	  this.life = false;
+	}  
+ }
+}
+
+function Bombs(ava, spd, xP, yP)
+{
+ this.life = true;
+ this.podclass = "bombs";
+ this.avatar = ava;
+ this.speed = spd;
+ this.posX = xP;
+ this.posY = yP;
+ this.yPoint = yP;
+ this.movie = function()
+ {
+   this.posY = this.posY + this.speed;
+       dist = this.posY - this.yPoint;
+       if (dist > 80)
+       {
+         this.life = false;
+       }   
+ }
+}
+
+function Nuke(ava, xP, yP)
+{
+ this.life = true;
+ this.timer = 0;
+ this.podclass = "nuke";
+ this.avatar = ava;
+ this.speedX = (Math.random()*10)-5;
+  this.speedY = (Math.random()*7);
+ this.posX = xP;
+ this.posY = yP;
+ this.yPoint = yP;
+ this.movie = function()
+ {
+      this.posX += this.speedX;
+      this.posY -= this.speedY;
+      this.timer ++;
+      if (this.timer>50)
+      {
+	     this.life = false;
+       }	
+  } 	
+ }
+ 
+ function NukeLight(ava, xP, yP)
+{
+ this.life = true;
+ this.timer = 0;
+ this.podclass = "nukeL";
+ this.avatar = ava;
+ this.speedX = (Math.random()*7)-3;
+  this.speedY = (Math.random()*7);
+ this.posX = xP;
+ this.posY = yP;
+ this.yPoint = yP;
+ this.movie = function()
+ {
+      this.posX += this.speedX;
+      this.posY -= this.speedY;
+      this.timer ++;
+      if (this.timer>50)
+      {
+	     this.life = false;
+       }	
+  } 	
+ }
+ 
+
+
+function updateUnits()
+{   
+    //delete units 
+	for (i=0; i<allUnits.length; i++)
+	{
+	  if (allUnits[i].life == false)
+	  {
+	     if (allUnits[i].podclass == "bombs")
+		 {
+		    //create nukes
+		    numNukes = Math.floor(Math.random()*10+1);
+			for (ii=0; ii<numNukes; ii++)
+			{
+			   nuke = new Nuke(".", allUnits[i].posX, allUnits[i].posY );
+			    allUnits.push(nuke);
+		     }	
+            //delete tech
+            for (iii=0; iii<allUnits.length; iii++ )
+            {
+			   if ( allUnits[iii].podclass == "tanks")
+			   {
+			       distX = Math.abs( allUnits[iii].posX - allUnits[i].posX-50);
+				   distY = Math.abs( allUnits[iii].posY - allUnits[i].posY+15);
+				   if (distX< 50 && distY <50 )
+				   {
+				      allUnits[iii].life=false;
+		              numNukes = Math.floor(Math.random()*10+30);
+			          for (ii=0; ii<numNukes; ii++)
+			         {
+			             nuke = new NukeLight(".", allUnits[iii].posX, allUnits[iii].posY );
+			             allUnits.push(nuke);
+		             }						  					  
+				   }
+			   }
+			}  			
+		 }
+	  	 aaa = allUnits[i];
+	     allUnits.splice(i,1);
+         aaa = null;	
+         i--;
+	  }
+	}
+
+	
+	//create units
+    if (Math.random()*10<1)
+	{
+	   ava = models[Math.floor(Math.random()*models.length)];
+	   spd = Math.floor(Math.random()*10+4);
+	   s = new Aviation(ava, spd);
+	   allUnits.push(s);
+	}
+
+	if (Math.random()*10<1)
+	{
+	   ava = modelsT[Math.floor(Math.random()*modelsT.length)];
+	   spd = Math.random()*5+2;
+	   s = new Tanks(ava, spd);
+	   allUnits.push(s);
+	} 
+    
+	//move units - create bombs
+     for (i=0; i< allUnits.length; i++ )
+     {
+	   allUnits[i].movie();
+	   if (allUnits[i].createBomb)
+	   {
+	     bomb = new Bombs(".", 3, allUnits[i].posX, allUnits[i].posY);
+		 //renderB.push(bomb);
+		 allUnits.push(bomb);
+		 allUnits[i].bombFalse();
+	   }
+	 }	 
+}
+
+// render
+function drawFrame() {
+	// Очистить холст
+	context.clearRect(0, 0, canvas.width, canvas.height);
+
+	for (i=0; i<allUnits.length; i++)
+    { 
+	  switch (allUnits[i].podclass)
+	  {
+	    case "avia":
+		  renderA.push(allUnits[i]);
+		break;
+	    case "tanks":
+		  renderT.push(allUnits[i]);
+		break;
+	    case "bombs":
+		  renderB.push(allUnits[i]);
+		break;		
+	    case "nuke":
+		  renderN.push(allUnits[i]);
+		break;	
+	    case "nukeL":
+		  renderNL.push(allUnits[i]);
+		break;			
+	  } 
+	}	
+	//shadows
+    context.fillStyle = "#B8860B";
+	context.font ='normal 80px tech';	
+	for (i = 0; i< renderT.length; i++)
+	{
+     	context.fillText(renderT[i].avatar, renderT[i].posX+3, renderT[i].posY-3); 	
+    }	
+	//tanks
+    context.fillStyle = "#EEE685";
+	context.font ='normal 80px tech';	
+	for (i = 0; i< renderT.length; i++)
+	{
+     	context.fillText(renderT[i].avatar, renderT[i].posX, renderT[i].posY); 	
+    }
+	//shadows avia
+    context.fillStyle = "#B8860B";	
+	context.font ='normal 80px Avia';
+	for (i = 0; i< renderA.length; i++)
+	{
+     	context.fillText(renderA[i].avatar, renderA[i].posX+10, renderA[i].posY+20 ); 	
+    }
+	//nukes
+    context.fillStyle = "#8B4500";
+	context.font ='normal 35px Arial';
+    for ( i=0; i< renderN.length; i++)
+    {
+	   context.fillText( renderN[i].avatar, renderN[i].posX+15, renderN[i].posY );  
+	} 	
+	//nukeLight
+    context.fillStyle = "#EEE685";
+	context.font ='normal 35px Arial';
+    for ( i=0; i< renderNL.length; i++)
+    {
+	   context.fillText( renderNL[i].avatar, renderNL[i].posX+15, renderNL[i].posY );  
+	} 	
+	//bombs
+    context.fillStyle = "#F5F5DC";
+	context.font ='normal 35px Arial';
+    for ( i=0; i< renderB.length; i++)
+    {
+	   context.fillText( renderB[i].avatar, renderB[i].posX+15, renderB[i].posY );  
+	} 	
+	//avia
+	context.fillStyle = "#F5F5DC";
+	context.font ='normal 60px Avia';
+	for (i = 0; i< renderA.length; i++)
+	{
+     	context.fillText(renderA[i].avatar, renderA[i].posX, renderA[i].posY ); 	
+    }
+	
+	renderT = [];
+    renderA = [];
+    renderB = [];	
+	renderN = [];
+	renderNL = [];	
+	
+	// Вызываем метод beginPath(), чтобы убедиться,
+	// что мы не рисуем часть уже нарисованного содержимого холста
+	context.beginPath();
+    context.drawImage(pic2, gameW/2, 5, 50,50);	
+	
+	updateUnits();
+	
+	// Рисуем следующий кадр через 20 миллисекунд
+	setTimeout("drawFrame()", 20);
+}
+ 
+</script>
+  <body>
+    <canvas id="canvas"></canvas>
+  </body>
+</html>

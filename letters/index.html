@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no">   
+  <link href="styles/style.css" type="text/css" rel="stylesheet"/>		
+</head>
+<body>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- APPLICATION   --> 
+
+<div id="app">
+
+	<!-- SCENE CANVAS -->	
+	<canvas id="canvas-webgl" class="p-canvas-webgl" style = "float: left;"></canvas>
+	
+	<!-- RIGHT SETTINGS -->	
+	<div id = "sceneSettings">
+		
+		 	
+		<span class = "text-interface">Тип вывески</span>	
+		<button class = "typeBoard checkOn" value = "letters">Объемные буквы</button>
+		<button class = "typeBoard" value = "box">Световые короба</button>
+	
+	
+		<span class = "text-interface">Тип букв</span>
+		<button class = "font checkOn" value="font1">Без засечек</button>
+		<button class = "font" value="font2">С засечками</button>
+		<button class = "font" value="font3">Декоративный</button>
+	
+	
+		<span class = "text-interface">Tип подсветки</span>
+		<button class = "typeLight checkOn" value="front">Лицевая</button><br/>
+		<button class = "typeLight" value="frontPlus">Лицевая и торец</button><br/>
+		<button class = "typeLight" value="open">Открытые светодиоды</button><br/>
+		<button class = "typeLight" value="contr">Контражур</button><br/>
+		<button class = "typeLight" value="none">Без подсветки</button>		
+	
+	
+		<span class = "text-interface">Tекст для вывески</span>   
+		<input class = "inputs" id ="mainText" type="text" value="Citygrafika"/>
+		
+		
+		<div style = "width: 100%;  margin: 0 auto; display: table;">
+		
+			<span class = "text-interface">Размеры вывески</span>
+			
+			<div id = "sizeWrapper" style = "width: 30%; min-width: 100px; float: left; margin: 0 auto; padding-left: 15%;">
+				<span class = "underText">Высота (см)</span>
+				<input class = "inputs" id ="size" type="text" value="50" style = "width: 80%;"/>
+				<div class = "underText">ширина: <span id = "width">270</span> см</div >
+			</div>
+		
+		
+			<div id = "heightWrapper" style = "width: 30%;  min-width: 100px; float: right; margin: 0 auto; padding-right: 15%;">
+				<span class = "underText">Глубина (см)</span>
+				<input class = "inputs" id = "height" type = "text" value = "10" style = "width: 80%;"/>
+			</div>	
+			
+		</div>	
+			
+		<span class = "text-interface">Цвет вывески</span>	
+		<div style = "text-align: left; width: 70%; margin: 0 auto;">	
+			<button class = 'colorButt' value = 'colorMain' style = "width: 60%; height: 25px; background-color: #c30000;"></button>
+			<span id = 'colorMainVal'>031</span>:&nbsp;основной		
+		</div>
+		<div style = "text-align: left; width: 70%; margin: 0 auto;">
+			<button class = 'colorButt' value = 'colorAdv' style = "width: 60%; height: 25px; background-color: #ffffff;"></button>
+			<span id = 'colorAdvVal'>010</span>:&nbsp;дополнит.			
+		</div>
+		<div id = 'colorBoxSide' style = "text-align: left; width: 70%; margin: 0 auto; display: none;">	
+			<button class = 'colorButt' value = 'colorBoxSide' style = "width: 60%; height: 25px; background-color: #c30000;"></button>	
+			<span id = 'colorBoxSideSetVal'>031</span>:&nbsp;торец				
+		</div>		
+		
+		<div style = "margin-top: 50px; margin-bottom: 20px;">
+			<span class = "text-interface" style = "margin-top: 40px; font-size: 16px; width: 80%;">Ориентировочная <br/> стоимость изготовления:</span>
+			<div style="margin-top: 10px;">
+				<span id = "price" style = "font-size: 18px; color: #ffffff;"></span>
+				<span>&nbsp;&nbsp;&nbsp;руб.</span>
+			</div>	
+		</div>
+			
+		<button id = "showUserForms" class ='checkOn' style = 'width: 70%; height: 30px; font-size: 16px'>Сделать запрос</button>			
+	</div>
+	
+	
+	<!-- PALLETES -->
+	<div id = 'colorPic' style = "display: none">
+		<div style = "text-align: center; width: 5%; height: 100%; float: right;">
+			<button id = "hidePallete"><img src = "maps/close.png"/></button>
+		</div>
+		<div id = 'containerColors' style = "float: left; width: 88% "></div>
+	</div>
+
+	<div id = 'formsInsertUserData' style = 'display: none;'>
+		<div style = " width: 5%; height: 100%; float: right;">
+			<button id = "hideUserForms"><img src = "maps/close.png"/></button>
+		</div>
+		<div id = 'containerForms' style = "margin: 0 auto; width: 60%; text-align: left; margin-top: 2%">
+			<div class = 'userFormText'>Наши менеджеры обработают Ваш запрос и перезвонят Вам.<br/> Пожалуйста, оставьте Ваши контактные данные.</div><br/>
+			<input class = "userForm" id ="mail" type="text" value="" style="margin-top: 5%"/>
+			<span class = 'userFormText'>Почта</span><br/><br/>
+			<input class = "userForm" id ="phone" type="text" value=""/>
+			<span class = 'userFormText'>Телефон</span><br/><br/>	
+			<input class = "userForm" id ="name" type="text" value=""/>
+			<span class = 'userFormText'>Как к Вам обратиться</span><br/><br/><br/>		
+			<button id = "sendOrder" class ='checkOn' style = 'width: 33.5%; height: 30px; font-size: 16px; margin-left: 15px; margin-bottom: 30px'>Отправка</button>	
+		</div>	
+		<div id = 'sendMessage' style = "margin: 0 auto; width: 60%; text-align: left; margin-top: 2%; display: none">
+			<div class = 'userFormText'>Запрос отпрален</div><br/>	
+		</div>	
+		
+	</div>
+
+	<!-- DAY / NIGHT BUTTONS -->
+	<!--	
+	<div style = 'position: absolute; left: 20px; bottom: 100px; width: 40px; text-align: center;'>
+		<button id = 'day' class = 'switchDay' value = 'ffffff'  >&#9728;</button>
+		<button id = 'night' class = 'switchDay checkOnPM' value = '000000'>&#9790;</button>		
+	</div> 
+	-->
+	
+	<!-- LOAD BACKGROUND IMG -->	
+	<div style = 'position: absolute; bottom: 40px; left: 20px;'>
+		Вы можете загрузить изображение Вашего фасада и примерить вывеску&nbsp;
+		<input type = 'button' id = 'btnupload' style = 'width: 200px; padding: 5px 40px 5px 40px; display: inline; cursor: pointer;' value = 'Загрузить фото'/>
+		<div id = 'imgParams' style = 'display: none'>		
+			<button id = 'hideImg' style = 'padding: 5px 40px 5px 40px; margin-bottom: -0px;  margin-top: -0px'>Убрать фото</button>
+			<input type="range" min="0" max="100" id="imgScale" style = "margin-bottom: -7px; display: inline; width: 200px; padding-left: 0px;" value="0" onkeydown="return false;">			
+		</div>
+		<input type = 'file' id = "fileupload"/ style = 'display: none;'>
+		<img src="#" id="upload-img" alt="image" style = 'display: none;'/>
+	</div>
+	
+	<!-- START PRELOADER -->	
+	<img id = 'preloaderImg' src = 'maps/loading.gif' style = 'position: absolute; bottom: 200px; left: 35%; z-index: 4000;' >
+	
+</div>
+
+<script type="text/javascript" src="js/libs/jquery-3.2.1.js"></script>	
+<script>$('#app').height( window.innerHeight );</script>
+
+<!-- END APPLICATION -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+
+/**************************************************;
+ * MAIN PARAMS
+ **************************************************/
+
+ 
+/** VALUES FOR PRICE ******************************/
+
+const pr = {
+	
+	'letters': {
+		'front': {
+			size10: 3,
+			height10: 3, 		
+		},
+		'frontPlus': {
+			size10: 3,
+			height10: 5,		
+		},
+		'open': {
+			size10: 1,
+			height10: 2,		
+		},	
+		'contr': {
+			size10: 1,
+			height10: 3,		
+		},
+		'none': {
+			size10: 1,
+			height10: 1,			
+		},		
+	},
+	'box': {
+		'front': {
+			size10: 1,
+			height10: 0.5, 		
+		},
+		'frontPlus': {
+			size10: 1,
+			height10: 1,		
+		},
+		'open': {
+			size10: 2,
+			height10: 0.5,		
+		},	
+		'contr': {
+			size10: 2,
+			height10: 0.5,		
+		},
+		'none': {
+			size10: 0.5,
+			height10: 0.5,			
+		},
+	},
+	'font1': 1,
+	'font2': 1.2,
+	'font3': 1.7
+}
+
+
+/** VALUES FOR COLORS *****************************/
+
+const colors = [
+
+	{ oracle: '000', hex: 'ffffff' },
+	{ oracle: '010', hex: 'ffffff' },
+	{ oracle: '020', hex: 'ff8e00' },
+	{ oracle: '019', hex: 'f79e00' },
+	{ oracle: '021', hex: 'ffae00' },
+	{ oracle: '022', hex: 'ffbe00' },
+	{ oracle: '036', hex: 'e75100' },
+	
+	{ oracle: '035', hex: 'ff6100' },
+	{ oracle: '404', hex: '4e1371' },
+	{ oracle: '040', hex: '520063' },
+	{ oracle: '043', hex: '844994' },
+	{ oracle: '042', hex: 'd692b5' },
+	{ oracle: '041', hex: 'ce046b' },
+	{ oracle: '045', hex: 'ef71a5' },
+	{ oracle: '057', hex: '1b5094' },
+	
+	{ oracle: '051', hex: '0d4c8a' },
+	{ oracle: '098', hex: '0d579f' },
+	{ oracle: '052', hex: '005db5' },
+	{ oracle: '084', hex: '0084bd' },
+	{ oracle: '053', hex: '00a3d0' },
+	{ oracle: '066', hex: '106963' },
+	{ oracle: '064', hex: '399600' },
+	
+	{ oracle: '063', hex: '6b9e00' },
+	{ oracle: '080', hex: '391c10' },
+	{ oracle: '083', hex: 'b54900' },
+	{ oracle: '081', hex: 'ad7142' },
+	{ oracle: '082', hex: 'd6b27b' },	
+	{ oracle: '023', hex: 'd6b27b' },   //!!!! miss	
+	{ oracle: '070', hex: '000000' },	
+	{ oracle: '092', hex: '000000' },   //!!!! miss	
+	
+	{ oracle: '026', hex: '8d0000' },
+	{ oracle: '312', hex: '9e0000' },
+	{ oracle: '030', hex: 'ae0000' },	
+	{ oracle: '031', hex: 'c30000' },		
+	{ oracle: '032', hex: 'd62800' },	
+	{ oracle: '047', hex: 'ef330a' },
+	{ oracle: '034', hex: 'ef4900' },
+	
+	{ oracle: '562', hex: '10002e' },
+	{ oracle: '518', hex: '1c043c' },
+	{ oracle: '050', hex: '100452' },
+	{ oracle: '065', hex: '18088c' },
+	{ oracle: '049', hex: '18238a' },
+	{ oracle: '086', hex: '1000a5' },
+	{ oracle: '067', hex: '1b3ea8' },
+	
+	{ oracle: '054', hex: '00967b' },
+	{ oracle: '055', hex: '52cb8c' },
+	{ oracle: '060', hex: '185531' },
+	{ oracle: '613', hex: '186b35' },
+	{ oracle: '061', hex: '007d39' },
+	{ oracle: '068', hex: '008637' },
+	{ oracle: '062', hex: '007d18' },	
+	
+	{ oracle: '073', hex: '425520' },
+	{ oracle: '071', hex: '5a626c' },
+	{ oracle: '076', hex: '6f7479' },
+	{ oracle: '074', hex: 'a7a7a7' },
+	{ oracle: '072', hex: 'd7d7d7' },
+	{ oracle: '090', hex: 'a7a7a7' },    //!!!! miss	
+	{ oracle: '091', hex: 'f79e00' }     //!!!! miss	
+  ]
+
+  
+/** START TEXT PARAMS *****************************/
+
+const params = {
+
+	typeBoard: 'letters',                /** or 'box'                                         */
+	fontType: 'font1',                   /** : Sans Serif, 'font2': Serif, 'font3': Artistic  */		
+	typeLight: 'front',                  /** 'frontPlus', 'open', 'contr', 'none'             */
+	textValue: 'Citygrafika',            /** start Text                                       */
+	heightBoard: 10, height: 10,         /** bevel Letters	                                  */
+	size: 50,                            /** height Letters                                   */
+	
+	/** insert object from colors */   
+	colorLettersFront: { oracle: '031', hex: 'c30000' }, 
+	colorLettersSide: { oracle: '010', hex: 'ffffff' },
+	colorBoxSide: { oracle: '031', hex: 'c30000' } 	
+}
+
+
+/** ORDER PARAMS ********************************/
+
+/** object order */
+const ORDER = {
+	
+	'Тип_вывески': 'Буквы',	
+	'Шрифт': 'Без засечек',
+	'Подсветка': 'Лицевая',
+	'Текст': 'Citygrafika',
+	'Высота': 50,
+	'Ширина': 300,
+	'Глубина': 10, 
+	'Цвет_Букв': '031',
+	'Цвет_Краев': '010',
+	'Цвет_торца_короба': '031', /** если есть */ 
+	'Цена': 3300,
+	'Почта': 'none',
+	'Телефон': 'none',
+	'Имя': 'none',
+	'Дата': 'none'
+}
+
+/** function send order */
+const SetForms = ( m = 'нет', p = 'нет', n = 'нет' ) => {
+
+	ORDER['Почта'] = m
+	ORDER['Телефон'] = p
+	ORDER['Имя'] = n
+
+	let  dt = []
+	let d = [dt.y, dt.m, dt.d, dt.h, dt.i, dt.s] = (new Date).toISOString().split(/[-T:.Z]/)
+	ORDER['Дата'] = d[2] + ' : ' + d[1] + ' : ' + d[0]	
+	
+	//* send........ */
+	console.log( ORDER )	
+}
+	
+</script>
+
+
+
+
+
+
+
+
+
+
+
+<script src='js/libs/three.js'></script>
+<script src='js/libs/EffectComposer.js'></script>
+<script src='js/libs/RenderPass.js'></script>
+<script src='js/libs/ShaderPass.js'></script>
+<script src='js/libs/CopyShader.js'></script>
+<script src="js/libs/FXAAShader.js"></script>
+<script src="js/libs/LuminosityHighPassShader.js"></script>
+<script src="js/libs/UnrealBloomPass.js"></script>
+<script src='js/libs/OrbitControls.js'></script>
+
+<script src="js/main.js"></script>
+
+
+</body>
+</html>

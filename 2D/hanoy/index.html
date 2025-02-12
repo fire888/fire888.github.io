@@ -1,0 +1,90 @@
+<html><body style="font-size: 15px"><script>
+let countPrint = -1
+const TOTAL_DISKS = 20
+const TOWERS = {
+	A: [],
+	B: [],
+	C: [],
+}
+
+for (let i = TOTAL_DISKS; i > 0; --i) {
+	TOWERS.A.push(i)
+}
+
+const printDisk = diskNum => {
+	let str = ''
+	let emptySpace = " ".repeat(TOTAL_DISKS - diskNum)
+	
+	if (diskNum === 0) {
+		str += emptySpace + "||" + emptySpace
+	} else {
+		const diskSpace = "@".repeat(diskNum)
+		const diskLabel = String("___" + diskNum).slice(-2)
+		str += emptySpace + diskSpace + diskLabel + diskSpace + emptySpace
+	}
+	return str	
+}
+
+const printTowers = () => {
+	return new Promise(res => {
+		document.body.innerHTML = ''
+		let str = '<pre>'
+		const towersLetters = "ABC"
+		for (let level = TOTAL_DISKS; level >= 0; --level) {
+			for (let towerLetterIndex = 0; towerLetterIndex < 3; ++towerLetterIndex) {
+				const tower = TOWERS[towersLetters[towerLetterIndex]]
+				if (level >= tower.length) {
+					str += printDisk(0)
+				} else {
+					str += printDisk(tower[level])
+				}
+			}
+			str += '<br />'
+			//document.write('<br />')
+		}
+		const emptySpace = " ".repeat(TOTAL_DISKS)
+		str += "<br />" + emptySpace + " A" + emptySpace + emptySpace + " B" + emptySpace + emptySpace + " C<br />"
+		str += "<br />count: " + countPrint
+		str += "</pre>"
+		document.body.innerHTML = str
+		//document.write(str)
+		
+		++countPrint
+		setTimeout(res, 0)
+	})
+
+}
+
+const moveOneDisk = (startTower, endTower) => {
+	const disk = TOWERS[startTower].pop()
+	TOWERS[endTower].push(disk)
+}
+
+let count = 0
+const solve = async (numbersOfDisks, startTower, endTower, tempTover) => {
+	++count
+	if (numbersOfDisks === 1) {
+		moveOneDisk(startTower, endTower)
+		await printTowers()
+		return;
+	} else {
+		await solve(numbersOfDisks - 1, startTower, tempTover, endTower)
+		moveOneDisk(startTower, endTower)
+		await printTowers()
+		await solve(numbersOfDisks - 1, tempTover, endTower, startTower)
+		return;
+	}
+}
+
+
+printTowers()
+const b = document.createElement('button')  
+b.innerHTML = '_______________start_______________'  
+b.addEventListener('click', () => {
+	solve(TOTAL_DISKS, "A", "B", "C").then(() => {})
+})
+document.body.appendChild(b) 
+
+
+
+</script></body></html>

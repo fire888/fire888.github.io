@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Labyrinth</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name='viewport' content='width=device-width, user-scalable=no'>
+  <link rel="stylesheet" type="text/css" href="styles/style.css" >
+</head>
+
+
+
+
+
+<!--
+********************************************************;   
+*  Author         : www.otrisovano.ru
+*  Source         : https://hithub.com/fire888/rosa
+********************************************************;
+--> 
+
+
+
+
+
+<body>
+<div id='start-screen-wrapper'> 
+  <div id='start-screen'> 
+    <div class='start-screen-elem'><span class='h1'>Labyrinth</span></div>
+    <div class='start-screen-elem' id='annotate'>based on the book<br/><a href='https://en.wikipedia.org/wiki/The_Name_of_the_Rose' target='black'>"The Name of the Rose"</a> Umberto Eco</div>
+    <div class='start-screen-elem' id='main'><div id='rules'>&larr; &rarr; &uarr; M</div><div id='preloader'>loading...</div><div id='button-start' class='hidden'>play</div></div>  
+  </div>  
+</div>  
+<div id='app' class='hidden'>
+  <div id='roomNumber'></div>
+  <div id='message' class='hidden'></div>
+  <div id='map' class='hidden'><img src='assets/map.png' /></div>
+  <div id='buttons'>
+    <div id='buttons-left'>
+      <div id='button-left' class='app-button'>&larr;</div>
+      <div id='button-right' class='app-button'>&rarr;</div>
+    </div>
+    <div id='buttons-right'>
+     <div id='button-map' class='app-button'>M</div> 
+     <div id='button-forvard' class='app-button'>&uarr;</div> 
+    </div> 
+  </div>
+  <canvas id='webgl-canvas'></canvas>
+</div>
+<script src='js/three.min.js'></script>
+<script src='js/OBJLoader.js'></script>
+<script src='js/SAT.js'></script>
+<script src='js/main.min.js'></script>
+</body>
+</html>
