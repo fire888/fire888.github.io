@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<style>
+		<style>
+			body {
+				margin: 0;
+				overflow: hidden;
+				background-color:0x9db3b5;				
+			}
+						
+			#info {
+			    color: black;
+				position: absolute;
+				top: 80px;
+				font-size: 40px;				
+				width: 100%;
+				padding: 5px;
+				text-align:center;
+			}
+			
+			.i {
+			    color: white;
+			}
+			
+			a {
+			     margin: 10px;
+			     font-size: 30px;
+	             color: black;	
+                 border: 2px solid black; 
+                 padding: 5px;
+                 text-decoration: none;	
+                 padding: 5px 15px 5px 15px;				 
+			}
+			
+			a:hover {
+	             color:white;	
+                 border: 2px solid black; 			 
+                 text-decoration: none;	
+                 background-color: #cda434;					 
+			}			
+		</style>
+	</head>
+	<body>
+		
+		<div id="info"></div>	
+	
+		<script src="three.js"></script>
+		<script src="FirstPersonControls.js"></script>
+        <script src="MTLLoader.js"></script>
+        <script src="OBJMTLLoader.js"></script>	
+        <script src="OBJLoader.js"></script>
+		
+
+
+<!--  Vasya shader--   -->
+<script id="vertexShaderV" type="x-shader/x-vertex" >
+
+
+//
+// GLSL textureless classic 3D noise "cnoise",
+// with an RSL-style periodic variant "pnoise".
+// Author:  Stefan Gustavson (stefan.gustavson@liu.se)
+// Version: 2011-10-11
+//
+// Many thanks to Ian McEwan of Ashima Arts for the
+// ideas for permutation and gradient selection.
+//
+// Copyright (c) 2011 Stefan Gustavson. All rights reserved.
+// Distributed under the MIT license. See LICENSE file.
+// https://github.com/ashima/webgl-noise
+//
+
+vec3 mod289(vec3 x)
+{
+  return x - floor(x * (1.0 / 289.0)) * 289.0;
+}
+
+vec4 mod289(vec4 x)
+{
+  return x - floor(x * (1.0 / 289.0)) * 289.0;
+}
+
+vec4 permute(vec4 x)
+{
+  return mod289(((x*34.0)+1.0)*x);
+}
+
+vec4 taylorInvSqrt(vec4 r)
+{
+  return 1.79284291400159 - 0.85373472095314 * r;
+}
+
+vec3 fade(vec3 t) {
+  return t*t*t*(t*(t*6.0-15.0)+10.0);
+}
+
+// Classic Perlin noise
+float cnoise(vec3 P)
+{
+  vec3 Pi0 = floor(P); // Integer part for indexing
+  vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1
+  Pi0 = mod289(Pi0);
+  Pi1 = mod289(Pi1);
+  vec3 Pf0 = fract(P); // Fractional part for interpolation
+  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0
+  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
+  vec4 iy = vec4(Pi0.yy, Pi1.yy);
+  vec4 iz0 = Pi0.zzzz;
+  vec4 iz1 = Pi1.zzzz;
+
+  vec4 ixy = permute(permute(ix) + iy);
+  vec4 ixy0 = permute(ixy + iz0);
+  vec4 ixy1 = permute(ixy + iz1);
+
+  vec4 gx0 = ixy0 * (1.0 / 7.0);
+  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;
+  gx0 = fract(gx0);
+  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);
+  vec4 sz0 = step(gz0, vec4(0.0));
+  gx0 -= sz0 * (step(0.0, gx0) - 0.5);
+  gy0 -= sz0 * (step(0.0, gy0) - 0.5);
+
+  vec4 gx1 = ixy1 * (1.0 / 7.0);
+  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;
+  gx1 = fract(gx1);
+  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);
+  vec4 sz1 = step(gz1, vec4(0.0));
+  gx1 -= sz1 * (step(0.0, gx1) - 0.5);
+  gy1 -= sz1 * (step(0.0, gy1) - 0.5);
+
+  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);
+  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);
+  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);
+  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);
+  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);
+  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);
+  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);
+  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);
+
+  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
+  g000 *= norm0.x;
+  g010 *= norm0.y;
+  g100 *= norm0.z;
+  g110 *= norm0.w;
+  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
+  g001 *= norm1.x;
+  g011 *= norm1.y;
+  g101 *= norm1.z;
+  g111 *= norm1.w;
+
+  float n000 = dot(g000, Pf0);
+  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));
+  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));
+  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));
+  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));
+  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));
+  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));
+  float n111 = dot(g111, Pf1);
+
+  vec3 fade_xyz = fade(Pf0);
+  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
+  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
+  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); 
+  return 2.2 * n_xyz;
+}
+
+// Classic Perlin noise, periodic variant
+float pnoise(vec3 P, vec3 rep)
+{
+  vec3 Pi0 = mod(floor(P), rep); // Integer part, modulo period
+  vec3 Pi1 = mod(Pi0 + vec3(1.0), rep); // Integer part + 1, mod period
+  Pi0 = mod289(Pi0);
+  Pi1 = mod289(Pi1);
+  vec3 Pf0 = fract(P); // Fractional part for interpolation
+  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0
+  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
+  vec4 iy = vec4(Pi0.yy, Pi1.yy);
+  vec4 iz0 = Pi0.zzzz;
+  vec4 iz1 = Pi1.zzzz;
+
+  vec4 ixy = permute(permute(ix) + iy);
+  vec4 ixy0 = permute(ixy + iz0);
+  vec4 ixy1 = permute(ixy + iz1);
+
+  vec4 gx0 = ixy0 * (1.0 / 7.0);
+  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;
+  gx0 = fract(gx0);
+  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);
+  vec4 sz0 = step(gz0, vec4(0.0));
+  gx0 -= sz0 * (step(0.0, gx0) - 0.5);
+  gy0 -= sz0 * (step(0.0, gy0) - 0.5);
+
+  vec4 gx1 = ixy1 * (1.0 / 7.0);
+  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;
+  gx1 = fract(gx1);
+  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);
+  vec4 sz1 = step(gz1, vec4(0.0));
+  gx1 -= sz1 * (step(0.0, gx1) - 0.5);
+  gy1 -= sz1 * (step(0.0, gy1) - 0.5);
+
+  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);
+  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);
+  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);
+  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);
+  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);
+  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);
+  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);
+  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);
+
+  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
+  g000 *= norm0.x;
+  g010 *= norm0.y;
+  g100 *= norm0.z;
+  g110 *= norm0.w;
+  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
+  g001 *= norm1.x;
+  g011 *= norm1.y;
+  g101 *= norm1.z;
+  g111 *= norm1.w;
+
+  float n000 = dot(g000, Pf0);
+  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));
+  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));
+  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));
+  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));
+  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));
+  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));
+  float n111 = dot(g111, Pf1);
+
+  vec3 fade_xyz = fade(Pf0);
+  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
+  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
+  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); 
+  return 2.2 * n_xyz;
+}
+
+// Include the Ashima code here!
+ 
+varying vec2 vUv;
+varying float noise;
+uniform float time;
+
+float turbulence( vec3 p ) {
+  float w = 100.0;
+  float t = -.5;
+  for (float f = 1.0 ; f <= 10.0 ; f++ ){
+    float power = pow( 2.0, f );
+    t += abs( pnoise( vec3( power * p ), vec3( 10.0, 10.0, 10.0 ) ) / power );
+  }
+  return t;
+}
+
+void main() {
+
+  vUv = uv;
+
+  noise = 10.0 *  -.10 * turbulence( .5 * normal + time );
+  float b = 2.0 * pnoise( 0.05 * position + vec3( 2.0 * time ), vec3( 100.0 ) );
+  float displacement = - 1. * noise + b;
+  
+  vec3 newPosition = position + normal * displacement;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );
+
+}
+</script>
+
+<script id="fragmentShaderV" type="x-shader/x-vertex"> 	
+varying vec2 vUv;
+uniform sampler2D tExplosion;
+
+  
+void main() {
+gl_FragColor = texture2D(tExplosion, vUv);
+}  
+</script>
+<!-- ----------------------------------------------------------- -->
+
+
+
+		
+		<script>
+
+			// GLOBALS ======================================================
+		    var  topMessage = document.getElementById("info");
+			
+			function endText()
+			{
+		      topMessage.innerHTML =  " <a href=\"http://js.otrisovano.ru/location/08\"> < &nbsp;&nbsp; Previous step </a> " +
+                           " <a href=\"http://js.otrisovano.ru/location/10\">   Next step &nbsp;&nbsp; > </a>" ;				
+			}
+			
+			
+			var camera, scene, renderer, player, clock;
+			var camera2;
+			var camera3;
+			
+			var bufferTexture;
+		    var bufferTexture2;
+			
+			var INV_MAX_FPS = 0.01, frameDelta = 0;
+            var colorEnv = 0xebece4;
+			
+			var gameStatus = "beforeDoor";
+			
+			var obj; 		
+			var door = 0;
+			var door2;
+			var door3;
+			
+			var doorVirt, door2Virt, door3Virt;
+			var shadowDoor;
+			var readyDoor = false;
+			var innerDoor;
+			var innerDoor2;
+			
+			var portal;
+			var portalVirt;
+			
+			var artObj;
+							
+            start2 = Date.now()+Math.random();				
+            var uniforms; 	
+            var head;
+		    var loc2Distance = 10000000;
+
+           // Constructor Portal ============================================
+
+           ConstrPortal = function(pX,pY,pZ)
+           {
+		      this.pX = pX;
+			  this.pY = pY;
+			  this.pZ = pZ;
+			  
+		      this.status = "none";
+              this.numObj = 0;
+              this.arrObj = []; 
+              this.arrLines = [];
+              this.arrLinesPoints = [];	
+              this.arrLinesPointsModul = [];			  
+			  
+			  //dummy
+		      var dummyG = new THREE.BoxGeometry( 0.001, 0.001, 0.001 );
+              var dummyM = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+              this.dummy = new THREE.Mesh( dummyG, dummyM );
+			  this.dummy.position.set( this.pX , -20, this.pZ ); 
+              scene.add(this.dummy);
+			  
+              this.addObj = function()
+			  {
+			     if ( this.numObj < 6)
+				 {
+			        tt = ConstrPortal.Geom.clone();
+                    tt.position.set( Math.sin(this.numObj / 6 * Math.PI * 2)*40, 0, Math.cos(this.numObj / 6 * Math.PI * 2)*40); 
+                    tt.rotation.y = -( Math.PI*2/8)*this.numObj + Math.PI; 				 
+			        this.dummy.add(tt);
+				    this.arrObj.push(tt);					
+				    this.numObj ++;
+				 }
+
+                 if ( this.numObj > 1 && this.numObj < 7 )
+                 {
+         	        var materialLaser = new THREE.LineBasicMaterial({ color: 0xffffff});				 
+                    this.arrPoints = [];
+					this.modul = [];
+					
+                    startX = this.arrObj[this.numObj-2].position.x;
+                    startZ = this.arrObj[this.numObj-2].position.z;					
+                    finishX = this.arrObj[this.numObj-1].position.x;
+                    finishZ = this.arrObj[this.numObj-1].position.z;					
+			        this.arrPoints.push( new THREE.Vector3(startX, 22, startZ) );
+		            for ( ix = 0; ix < 10; ix ++ )
+			        {
+			           this.arrPoints.push( new THREE.Vector3( startX*ix/12+Math.random()*5-2.5, Math.random()*12-2.5, startZ*ix/12+Math.random()*5-2.5));	
+			        }					
+			        this.arrPoints.push( new THREE.Vector3( finishX, 22, finishZ ) );
+                    this.modul = this.arrPoints.slice();
+                    this.arrLinesPointsModul.push(this.modul); 					
+			        this.spline = new THREE.SplineCurve3(this.arrPoints);
+                    this.arrLinesPoints.push(this.arrPoints);					
+                    this.geometryLaser = new THREE.Geometry();
+                    this.geometryLaser.vertices = this.spline.getPoints(12);
+                    this.laser = new THREE.Line(this.geometryLaser, materialLaser);	
+                    this.arrLines.push(this.laser); 					
+                    
+					this.dummy.add(this.laser);
+					
+				 }	
+
+                 if ( this.numObj == 6 )
+                 {
+				 
+				    this.status = "end";
+					
+			        //smoke
+	                var smokeTxt = THREE.ImageUtils.loadTexture( 'centre.png' );			  
+                    var crateMaterial = new THREE.SpriteMaterial( { map: smokeTxt, useScreenCoordinates: false, color: 0xffffff, rotation: Math.random()*Math.PI*2} );
+	                var smoke = new THREE.Sprite( crateMaterial );
+	                smoke.scale.set( 80, 80, 1.0 ); // imageWidth, imageHeight
+					smoke.position.set(0,30,0);
+                    this.dummy.add( smoke );					 
+				 
+				    //laser
+         	        var materialLaser = new THREE.LineBasicMaterial({ color: 0xffffff});				 
+                    this.arrPoints = [];
+					this.modul = [];
+					
+                    startX = this.arrObj[this.arrObj.length-1].position.x;
+                    startZ = this.arrObj[this.arrObj.length-1].position.z;					
+                    finishX = this.arrObj[0].position.x;
+                    finishZ = this.arrObj[0].position.z;					
+			        this.arrPoints.push( new THREE.Vector3(startX, 22, startZ) );
+		            for ( ix = 0; ix < 10; ix ++ )
+			        {
+			           this.arrPoints.push( new THREE.Vector3( startX*ix/12+Math.random()*5-2.5, Math.random()*12-2.5, startZ*ix/12+Math.random()*5-2.5));	
+			        }					
+			        this.arrPoints.push( new THREE.Vector3( finishX, 22, finishZ ) );	
+                    this.modul = this.arrPoints.slice();
+                    this.arrLinesPointsModul.push(this.modul); 					
+			        this.spline = new THREE.SplineCurve3(this.arrPoints);
+                    this.arrLinesPoints.push(this.arrPoints);					
+                    this.geometryLaser = new THREE.Geometry();
+                    this.geometryLaser.vertices = this.spline.getPoints(12);
+                    this.laser = new THREE.Line(this.geometryLaser, materialLaser);					
+                    
+					this.dummy.add(this.laser);	
+					
+                    this.numObj ++;					
+				 }  				 				 
+			  }
+			  
+              this.updateLines = function()
+              {
+		   			 for (var a1 = 0; a1 < this.arrLines.length; a1++)
+                     {					 
+						for ( var sa=1; sa<this.arrLinesPoints[a1].length-1; sa++)
+			             { 	
+				            this.arrLinesPoints[a1][sa].x =  this.arrLinesPointsModul[a1][sa].x + Math.random()*5-2.5; 				  
+				            this.arrLinesPoints[a1][sa].y  =  this.arrLinesPointsModul[a1][sa].y + Math.random()*5-2.5;   
+				            this.arrLinesPoints[a1][sa].z  =  this.arrLinesPointsModul[a1][sa].z + Math.random()*5-2.5;						
+				         }
+                         spline = new THREE.SplineCurve3(this.arrLinesPoints[a1]);				  
+				         this.arrLines[a1].geometry.vertices = spline.getPoints(12);
+                         this.arrLines[a1].geometry.verticesNeedUpdate = true; 
+						 
+		             } 
+		      }			  
+			  
+		   }
+		   
+           ConstrPortal.addGeom = function(geom)
+           {
+		         ConstrPortal.Geom = geom.clone();
+				 ConstrPortal.status = "geomOk";
+				 //scene.add(ConstrPortal.Geom);
+		   }
+		   
+		   
+		   // Constructor Unit ==============================================
+		   
+           // Dinamic methods		   
+           ConstrUnit = function(pX, pY, pZ, plStatus)
+      	   {
+		      this.posX = pX;
+              this.posY = pY;
+              this.posZ = pZ;
+			 
+			  this.tgtX;
+			  this.tgtZ;
+			 
+			  this.timer = 0;
+			 
+			  this.spdX;
+			  this.spdY;
+			 	    
+			  var geomHead; 	 
+			  var status = "none";
+			  this.playStatus = plStatus;
+			  
+			  this.dummy;
+			  
+		      ConstrUnit.ARR_UNITS.push(this);
+			  
+	          this.update = function()
+              {
+			    if (ConstrUnit.status == "headOk" && status == "none")
+				{				
+				     this.createGeom();
+                     status = "ready"; 					 
+				}
+				
+				if (status == "ready")
+				{
+ 			       this.bullGroupUpdate();
+				   
+                   if (Math.random()*200 < 1 && this.playStatus == "loc1")
+                   {
+				       if (gameStatus == "play" )
+					   {
+				          this.tgtX = Math.random()*60-30+camera.position.x;
+                          this.tgtZ = Math.random()*60-30+camera.position.z;
+					   }
+                       if (gameStatus != "play" )
+                       {
+				          this.tgtX = Math.random()*60;
+                          this.tgtZ = Math.random()*60-40;					   
+					   }
+					   
+					  tt = new THREE.Vector3(this.tgtX, 15, this.tgtZ );
+                      this.dummy.lookAt(tt);
+                      this.spdX = (this.tgtX - this.dummy.position.x)/100;   					  
+                      this.spdZ = (this.tgtZ - this.dummy.position.z)/100;  					  
+                      status = "gotoTgt";  					  
+				   } 				   
+				}
+				
+				if (status == "gotoTgt")
+				{
+				     this.dummy.position.x +=  this.spdX;
+                     this.dummy.position.z +=  this.spdZ;
+					 
+
+
+					 if (  Math.abs(this.tgtX - this.dummy.position.x)< 0.5 && Math.abs(this.tgtZ - this.dummy.position.z)< 0.5 )	
+                     {
+					    //   alert("ready");
+						   status = "ready";
+						   this.dummy.lookAt(camera.position);
+                           if (gameStatus != "play" )
+                           {
+						       this.dummy.lookAt(door.position);				   
+					       }						   				   
+				     }
+				}	 
+				
+			  }
+          
+              this.createGeom = function()
+              {
+		          //dummy
+		          var dummyG = new THREE.BoxGeometry( 0.001, 0.001, 0.001 );
+                  var dummyM = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+                  this.dummy = new THREE.Mesh( dummyG, dummyM );
+			      this.dummy.position.set( this.posX, this.posY, this.posZ ); 	
+
+		          //particles
+                  ConstrUnit.bullText = THREE.ImageUtils.loadTexture( 'bull.png' );
+                  ConstrUnit.spriteMaterial = new THREE.SpriteMaterial( { map: ConstrUnit.bullText, useScreenCoordinates: false/*, color: colorUnit*/ } );			            
+			      this.bullGroup = new THREE.Object3D();
+                  var totalBull = 20;				 
+	              for( var i = 0; i < totalBull; i++ ) 
+	              {
+		              var sprite = new THREE.Sprite( ConstrUnit.spriteMaterial );
+		              sprite.scale.set( 0.4, 0.4, 0.4 ); // imageWidth, imageHeight
+		              sprite.position.set( Math.random()*10-5, Math.random()*10-5,  Math.random()*10-5);
+		              this.bullGroup.add( sprite );
+	              }
+	              this.bullGroup.position.set( 0,0,0 ); 				  
+                  this.dummy.add( this.bullGroup );	
+
+			      //smoke
+	              var smokeTxt = THREE.ImageUtils.loadTexture( 'smk.png' );			  
+                  var crateMaterial = new THREE.SpriteMaterial( { map: smokeTxt, useScreenCoordinates: false, color: 0x55009c, rotation: Math.random()*Math.PI*2} );
+	              var smoke = new THREE.Sprite( crateMaterial );
+	              smoke.scale.set( 15, 15, 1.0 ); // imageWidth, imageHeight
+                  this.dummy.add( smoke );	
+
+                  //shadow
+	              var shadowTxt = THREE.ImageUtils.loadTexture( 'shdw.png' );			  
+                  var shadowM = new THREE.SpriteMaterial( { map: shadowTxt, useScreenCoordinates: false, color:  0x7d7f88/*, rotation: Math.random()*Math.PI*2*/ });
+	              var shadow = new THREE.Sprite( shadowM );
+	              shadow.scale.set( 15, 3, 1.0 ); // imageWidth, imageHeight
+                  shadow.position.y = -15;				  
+                  this.dummy.add( shadow );	
+				  
+			      //head
+				  geomHead = ConstrUnit.geomHead.clone();
+                  geomHead.position.set( 0,0,0);					 
+                  this.dummy.add( geomHead );				  
+				  
+				  scene.add( this.dummy );
+				  this.dummy.rotation.y = - Math.PI/2;
+			  }	
+
+              this.bullGroupUpdate = function()
+              {
+                      for ( var df = 0;  df < this.bullGroup.children.length; df ++)
+			          {
+				         if ( this.bullGroup.children[ df ].position.y  < 7)
+					     {  
+	                        this.bullGroup.children[ df ].position.y += 0.03;				   
+                         }     
+				         if ( this.bullGroup.children[ df ].position.y  > 7 )
+					     {
+                            this.bullGroup.children[ df ].material.opacity = 1;
+                            this.bullGroup.children[ df ].position.set( Math.random()*10-5, -3,  Math.random()*10-5);							
+                         }								
+				      }					  
+			  }			  
+		   } 
+		   	   
+		   // Static methods
+		   ConstrUnit.status = "none";
+           ConstrUnit.ARR_UNITS = [];		   
+		   
+           ConstrUnit.addGeomHead = function(geom)
+           {
+		         ConstrUnit.geomHead = geom.clone();
+				 ConstrUnit.status = "headOk";
+		   }
+
+           ConstrUnit.update = function()
+           {
+		         for (s = 0; s < ConstrUnit.ARR_UNITS.length; s ++ )
+				 {
+				    ConstrUnit.ARR_UNITS[s].update();			 
+				 }					 
+		   }		   
+
+		   // SETUP ========================================================
+
+			function setup() 
+			{
+				document.body.style.backgroundColor = colorEnv;
+				setupThreeJS();
+				setupWorld();
+
+				requestAnimationFrame(function animate() {
+					draw();
+
+					frameDelta += clock.getDelta();
+					while (frameDelta >= INV_MAX_FPS) 
+					{
+		              //  player.moveBackward  = false;				
+				        player.update(INV_MAX_FPS);						
+						frameDelta -= INV_MAX_FPS;
+					}
+
+					requestAnimationFrame( animate );
+				});
+			}
+
+			function setupThreeJS() 
+			{
+				scene = new THREE.Scene();
+			    //scene.fog = new THREE.FogExp2(colorEnv, 0.001);
+
+				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera.position.x = -200;			
+				camera.position.y = 9;
+				camera.position.z = 0;
+				camera.position.z = -10000;				
+
+                camera2 = new THREE.PerspectiveCamera( 75, 1200 / 2000, 1, 10000 );
+ 				camera2.position.x = -50;			
+				camera2.position.y = 14;
+				camera2.position.z = 0;
+                bufferTexture = new THREE.WebGLRenderTarget( 1200, 2000, { minFilter: THREE.LinearFilter, magFilter: THREE.NearestFilter});					
+				
+                camera3 = new THREE.PerspectiveCamera( 75, 1200 / 2000, 1, 10000 );
+                bufferTexture2 = new THREE.WebGLRenderTarget( 1200, 2000, { minFilter: THREE.LinearFilter, magFilter: THREE.NearestFilter});					
+				
+				renderer = new THREE.WebGLRenderer({antialias: true});
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setClearColor(colorEnv);					
+				document.body.appendChild( renderer.domElement );
+
+                var ambientLight = new THREE.AmbientLight(0xe5e5e5);
+                ambientLight.name = 'ambientLight';
+                scene.add(ambientLight);
+				
+                var dirLight = new THREE.DirectionalLight(0xf9ffb6);
+                dirLight.position.set(-5, 20, 20);
+                scene.add(dirLight);		
+
+				clock = new THREE.Clock();
+				player = new THREE.FirstPersonControls(camera);
+				player.movementSpeed = 50;
+				player.lookSpeed = 0.1;
+			}
+
+			function setupWorld()
+			{										  
+			   portal = new ConstrPortal( 60, -20, -50);
+			   portalVirt = new ConstrPortal( 60, -20, -50 + loc2Distance );
+			   
+	           loader1 = new THREE.OBJMTLLoader();
+               loader1.load("artObj.obj", "doorM.mtl", function (obj3) 
+			   {
+				   obj3.name = "art"; 
+				   ConstrPortal.addGeom(obj3);
+				  // artObj = obj3.clone(); 
+				  // artObj.position.set(150,-20,-50); 				   
+				  // scene.add(artObj); 				   
+			   });
+			   
+	           loader0 = new THREE.OBJMTLLoader();
+               loader0.load("door.obj", "doorM.mtl", function (obj0) 
+			   {
+                   obj0.position.set(0, 0, 10);
+				   obj0.name = "door"; 
+				   door = obj0.clone(); 
+				   door.position.set(0,-20,-10000); 	
+                   door.rotation.y = -Math.PI/2;
+                   door.rotation.y += Math.PI/4;				   
+				   scene.add(door); 				   
+			   });			   
+
+			   
+		       var shadowDoorP = new THREE.PlaneGeometry(80,120,1,1);
+			   
+               var shadowDoorM = new THREE.MeshBasicMaterial( {color: 0x7d7f88} );
+               shadowDoorM.map = new THREE.ImageUtils.loadTexture("txDoorShadow.png");	
+               shadowDoorM.transparent = true;
+               shadowDoorM.shading = THREE.SmoothShading;
+               shadowDoorM.depthWrite = false;
+               shadowDoor = new THREE.Mesh(shadowDoorP, shadowDoorM);
+			   shadowDoor.position.set(-30,0,-20)
+               shadowDoor.rotation.x = -Math.PI/2; 	
+               shadowDoor.rotation.z = Math.PI/2;			   			   
+
+               var innerDoorP =  new THREE.PlaneGeometry(30, 50, 1,1);
+               var innerDoorM = new THREE.MeshBasicMaterial({map:bufferTexture});			   			   
+               innerDoor = new THREE.Mesh(innerDoorP, innerDoorM);
+			   innerDoor.position.set(0,10,-10000)			   
+               innerDoor.rotation.y = -Math.PI/2;
+               innerDoor.rotation.y += Math.PI/4;	 			   
+               scene.add(innerDoor);
+			   
+	           var innerDoor2M = new THREE.MeshBasicMaterial({map:bufferTexture2});
+               innerDoor2 = new THREE.Mesh(innerDoorP, innerDoor2M);			   
+		   
+               var t = new ConstrUnit(0,15,-40, "loc1");			   
+               t = new ConstrUnit(0,15,-10, "loc1");
+               t = new ConstrUnit(1,15,-20, "loc1");
+               t = new ConstrUnit(0,15,-30, "loc1");
+               t = new ConstrUnit(0,15,-50, "loc1");
+			   
+               materialS2 = new THREE.ShaderMaterial( 
+			   {
+                   uniforms:
+				   { 
+                      tExplosion:
+					  {
+                         type: "t", 
+                         value: THREE.ImageUtils.loadTexture( 'maskTx.jpg' )
+                      },
+                      time: 
+					  { 
+						   // float initialized to 0
+                           type: "f", 
+                           value: Math.random()
+                       }
+                    },
+                    vertexShader: document.getElementById( 'vertexShaderV' ).textContent,
+                    fragmentShader: document.getElementById( 'fragmentShaderV' ).textContent
+                 });
+
+	             loaderHead = new THREE.OBJMTLLoader();
+                 loaderHead.load("head.obj", "headM.mtl", function (obj) 
+			     {
+                     obj.traverse( function ( child ) 
+	                 {
+                       if ( child instanceof THREE.Mesh ) 
+					  {
+                         child.material = materialS2;                   						 
+                      }
+                  } );
+				   obj.name = "head"; 
+                   ConstrUnit.addGeomHead(obj);   				    				   
+			     });				 
+            }
+		  		
+			// DRAW ================================
+
+			function draw() 
+			{ 	 
+                if (door != 0 )
+                { 
+				   if (readyDoor == false)
+				   {
+				      door.add(shadowDoor);
+					  readyDoor = true;
+				   }	  
+				}				
+				
+									   
+                materialS2.uniforms[ 'time' ].value = .00025 * ( Date.now() - start2 );		
+             	
+				if (gameStatus == "beforeDoor")
+				{
+			       ConstrUnit.update();	
+				   
+                   camera2.rotation.set(camera.rotation.x,camera.rotation.y,camera.rotation.z);	
+		     	   renderer.render( scene, camera2, bufferTexture );				   
+								   
+				   if ( Math.abs(camera.position.x) < 10 && Math.abs(camera.position.z+10000) < 10 )
+				   {
+				      camera.position.z += 10000;
+                      door.position.z += 10000;
+                      gameStatus = "play";
+					  
+					  doorVirt = door.clone();
+					  doorVirt.position.z = door.position.z + loc2Distance;
+                      scene.add(doorVirt); 					  
+					  
+					  door2 = door.clone();
+                      door2.position.set(-80,-20,-200);
+                      door2.rotation.y = Math.PI*2/0.11;
+                      //door2.rotation.y += Math.PI;					  
+                      scene.add(door2);					  
+					  innerDoor.position.set(-85,10,-197);
+                      innerDoor.rotation.y = Math.PI*2/0.11;
+					  door2Virt = door2.clone();
+					  door2Virt.position.z = door2.position.z + loc2Distance;
+                      scene.add(door2Virt); 						  
+					  
+					  
+					  door3 = door2.clone();
+                      door3.position.set(200,-20,100);					  	
+                      scene.add(door3);
+					  door3Virt = door3.clone();
+					  door3Virt.position.z = door3.position.z + loc2Distance;
+                      scene.add(door3Virt); 					  
+					  camera2.position.set(200, 9, 95+loc2Distance);					  
+					  
+					  camera3.position.set(-80, 9, -195+loc2Distance);
+			          innerDoor2.position.set(200,10,105)			   
+                      innerDoor2.rotation.y  = Math.PI*2/0.11;
+                      innerDoor2.rotation.y += Math.PI;				  
+                      scene.add(innerDoor2);
+
+                      portalVirt.addObj();					  
+				   }
+				 } 
+				 
+				 if (gameStatus == "play")
+				 {
+			        ConstrUnit.update();					 
+				 
+				    if ( Math.abs(camera.position.x - door2.position.x) < 10 && Math.abs(camera.position.z - door2.position.z) < 10 )
+				    {
+                         camera.position.x = door3.position.x; 
+                         camera.position.z = door3.position.z; 
+
+
+                         portal.addObj();		
+                         portalVirt.addObj();					 
+                    } 				    
+                         portal.updateLines();
+                         portalVirt.updateLines();	
+
+                    camera2.rotation.set(camera.rotation.x,camera.rotation.y,camera.rotation.z);
+                    camera3.rotation.set(camera.rotation.x,camera.rotation.y,camera.rotation.z);				 
+		     	    renderer.render( scene, camera2, bufferTexture );	
+		     	    renderer.render( scene, camera3, bufferTexture2 );	
+
+                    if ( portal.status == "end" )
+                    {
+			            ConstrUnit.update();
+						
+					    if ( Math.abs(camera.position.x - portal.dummy.position.x ) < 10 && Math.abs(camera.position.z - portal.dummy.position.z) < 10 )
+						{
+				          renderer.setClearColor(0xffffff);						
+						  gameStatus  = "end";
+						  camera.position.x = -10000000;				  
+			              topMessage.innerHTML = "Nice!";
+                          setTimeout("endText()", 6000);						  
+						}
+					}					
+				 }
+				 
+				 
+			                				 
+				 renderer.render( scene, camera );			   
+		   	}
+			
+			// RUN ==========================================================
+
+			setup();
+		
+		</script>
+		<div id = "message">test </div>
+	</body>
+</html>

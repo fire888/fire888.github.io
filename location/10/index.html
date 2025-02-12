@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<style>
+			body {
+				margin: 0;
+				overflow: hidden;
+				background-color:0x9db3b5;				
+			}
+			
+			#info {
+			    color: white;
+				position: absolute;
+				top: 80px;
+				font-size: 40px;				
+				width: 100%;
+				padding: 5px;
+				text-align:center;
+			}
+	
+		a {
+			     margin: 10px;
+			     font-size: 20px;
+	             color: white;	
+                 border: 2px solid white; 
+                 padding: 5px;
+                 text-decoration: none;	
+                 padding: 5px 15px 5px 15px;				 
+			}
+			
+			a:hover {
+	             color:white;	
+                 border: 2px solid white; 			 
+                 text-decoration: none;	
+                 background-color: #cda434;					 
+			}				
+						
+			
+		</style>
+	</head>
+	<body>		
+		<div id="info"></div>	
+	
+		<script src="three.js"></script>
+		<script src="FirstPersonControls.js"></script>
+        <script src="MTLLoader.js"></script>
+        <script src="OBJMTLLoader.js"></script>	
+        <script src="OBJLoader.js"></script>
+				
+		<script>
+
+			// GLOBALS ======================================================
+		    var  topMessage = document.getElementById("info");	
+
+            function endMessage()
+            {
+			  topMessage.innerHTML = " <a href=\"http://js.otrisovano.ru/location/09\"> <- &nbsp; Previous step </a> " +
+                          " <a href=\"http://js.otrisovano.ru/location/11\">   Next step &nbsp; -> </a>" ;	
+			}			
+		   
+			var camera, scene, renderer, player, clock;
+			var camera2;
+			var camera3;
+			
+			var bufferTexture;
+		    var bufferTexture2;
+			
+			var INV_MAX_FPS = 0.01, frameDelta = 0;
+            var colorEnv = 0xebece4;
+			
+			var arrRooms = [];
+			var arrPict = [];
+			var roomsReady = "none";
+			
+			var currentLocPlayer = 0;
+			var oldLocPlayer = 0;
+			var oldX =-5;
+			var oldZ=40;
+			
+			var gameStatus = "play";
+			var timerPictAnim = 0;
+			var endTimer = 0;
+			var openEye;
+			var closeEye;
+			var endAnimStatus = "close";
+			
+			var planeClosedEye;
+			
+		   // SETUP ========================================================
+
+			function setup() 
+			{
+				document.body.style.backgroundColor = colorEnv;
+				setupThreeJS();
+				setupWorld();
+
+				requestAnimationFrame(function animate() {
+					draw();
+
+					frameDelta += clock.getDelta();
+					while (frameDelta >= INV_MAX_FPS) 
+					{
+		              //  player.moveBackward  = false;				
+				        player.update(INV_MAX_FPS);						
+						frameDelta -= INV_MAX_FPS;
+					}
+
+					requestAnimationFrame( animate );
+				});
+			}
+
+			function setupThreeJS() 
+			{
+				scene = new THREE.Scene();
+			    scene.fog = new THREE.FogExp2(0x000000, 0.02);
+
+				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera.position.x = -15;			
+				camera.position.y = 9;
+				camera.position.z = 40;
+								
+			
+				
+				renderer = new THREE.WebGLRenderer({antialias: true});
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setClearColor(colorEnv);					
+				document.body.appendChild( renderer.domElement );
+
+                var ambientLight = new THREE.AmbientLight(0xe5e5e5);
+                ambientLight.name = 'ambientLight';
+                scene.add(ambientLight);
+				
+                var dirLight = new THREE.DirectionalLight(0xf9ffb6);
+                dirLight.position.set(-5, 20, 20);
+                scene.add(dirLight);		
+
+				clock = new THREE.Clock();
+				player = new THREE.FirstPersonControls(camera);
+				player.movementSpeed = 30;
+				player.lookSpeed = 0.1;
+
+			}
+
+			function setupWorld()
+			{	
+			
+	           loader1 = new THREE.OBJMTLLoader();
+               loader1.load("room.obj", "roomM.mtl", function (obj3) 
+			   {
+				   obj3.name = "art"; 
+				   for (ai=0; ai<4; ai++)
+				   {
+				      artObj = obj3.clone(); 
+				      artObj.position.set(0,0,0);
+                      artObj.rotation.y = Math.PI/2 * ai;  
+                      roomsReadyeady = true;					  
+				      scene.add(artObj);
+					  arrRooms.push(artObj);
+                      roomsReady = "ok";					  
+                    }					  
+			   });			
+
+	         var picGeometry = new THREE.PlaneGeometry(17.4, 12.3, 1,1);			
+             for (i=1; i<6; i++)
+			 {
+                 var mat = new THREE.MeshBasicMaterial();
+                 fileName = "1 (" + i + ").jpg";			 
+                 mat.map = new THREE.ImageUtils.loadTexture(fileName);			 
+                 var unit = new THREE.Mesh(picGeometry, mat);
+			     unit.position.set(38, 10.5, -49.9);
+				 //unit.rotation.y = -Math.PI/2;
+			     //unit.lookAt(camera.position);
+                 arrPict.push(unit);				 
+                // scene.add(unit);
+             } 				 
+
+            }
+		  		
+			// DRAW ================================
+
+			function draw() 
+			{
+               player.moveBackward = false;
+			
+               if (gameStatus == "play")
+			   {
+			
+                 if (roomsReady == "ok")
+				 {
+				    for (v1=0; v1<arrRooms.length; v1 ++)
+					{
+					  arrRooms[v1].add(arrPict[v1+1]);
+					}
+					
+					if (v1 >= 4)
+					{
+				      roomsReady = "already";
+					}  
+				 }
+				 
+				 //player
+				 if ( oldX > 0 && camera.position.x < 0)
+				 {
+				   currentLocPlayer ++; 
+				 }
+				 if ( oldX < 0 && camera.position.x > 0)
+				 {
+				   currentLocPlayer ++;
+				 }	
+				 if ( oldZ < 0 && camera.position.z > 0)
+				 {
+				   currentLocPlayer ++;
+				 }	
+				 if ( oldZ > 0 && camera.position.z < 0)
+				 {
+				   currentLocPlayer ++;
+				 }	
+				 
+                 //topMessage.innerHTML = currentLocPlayer;
+				 
+                 oldX = camera.position.x;
+                 oldZ = camera.position.z;	
+
+				 if(currentLocPlayer>2)
+				 {
+				    if (currentLocPlayer != oldLocPlayer)
+					{
+					    oldLocPlayer = currentLocPlayer;
+						changePicture();
+					}
+				 }
+				 
+				 if (currentLocPlayer == 55)
+				 {
+				   gameStatus = "endScene";
+ 	            
+     				var picGeometry1 = new THREE.PlaneGeometry(17.4, 12.3, 1,1);			
+                    var mat1 = new THREE.MeshBasicMaterial(); 		 
+                    mat1.map = new THREE.ImageUtils.loadTexture("1open.jpg");			 
+                    openEye = new THREE.Mesh(picGeometry1, mat1);
+			        openEye.position.set(38, 10.5, -49.9);	
+
+					var picGeometry2 = new THREE.PlaneGeometry(17.4, 12.3, 1,1);			
+                    var mat2 = new THREE.MeshBasicMaterial(); 		 
+                    mat2.map = new THREE.ImageUtils.loadTexture("1close.jpg");			 
+                    closeEye = new THREE.Mesh(picGeometry2, mat2);
+			        closeEye.position.set(38, 10.5, -49.9);	
+
+			        numRoom = (currentLocPlayer+3)%4-1;
+				    if (numRoom < 0 ) { numRoom = 3; }
+				    arrRooms[numRoom].remove(arrPict[arrPict.length-2]);
+				    arrRooms[numRoom].add(closeEye);
+					
+					var picGeometry3 = new THREE.PlaneGeometry(17.4, 12.3, 1,1);			
+                    var mat3 = new THREE.MeshBasicMaterial(); 		 			 
+                    planeClosedEye = new THREE.Mesh(picGeometry3, mat3);
+					planeClosedEye.position.set(0,0,15);
+					camera.add(planeClosedEye);
+			        						
+					
+				 }
+			   }
+			   
+			   if (gameStatus == "endScene")
+			   {
+			      endTimer ++;
+			      timerPictAnim ++;
+				  
+				  if ( timerPictAnim > 15 && endAnimStatus == "open" )
+				  {
+				       timerPictAnim = 0;
+					   
+			           var numRoom = (currentLocPlayer+3)%4-1;
+				       if (numRoom < 0 ) { numRoom = 3; }
+                       		   
+				         arrRooms[numRoom].remove(openEye);					     
+						 arrRooms[numRoom].add(closeEye);				   
+                         endAnimStatus = "close";					  
+                  }   
+				  
+				  if ( timerPictAnim > 15 && endAnimStatus == "close" )
+				  {
+				       timerPictAnim = 0;
+					   
+			           var numRoom = (currentLocPlayer+3)%4-1;
+				       if (numRoom < 0 ) { numRoom = 3; }					   
+				  				  
+                       if (endAnimStatus == "close")
+                       {
+				         arrRooms[numRoom].remove(closeEye);					     
+						 arrRooms[numRoom].add(openEye);				   
+                         endAnimStatus = "open";					  
+					   }                       					   
+				  
+				  }
+				  
+				  if (endTimer == 200)
+				  {
+				     	player.moveForward = false;
+                        topMessage.innerHTML = "***!!!!***";
+	                    setTimeout("endMessage()", 6000);
+                        gameStatus = "end";						
+				  }               				  
+			   }
+			   
+			   if ( gameStatus == "end")
+			   {
+                      player.moveForward = false;				  
+			   }
+
+               if (camera.position.x >0 && camera.position.z > 0)
+               {
+                  if( camera.position.x > 45 && player.target.x > 45)
+                  {
+			          player.moveForward = false;
+			      }	
+                  if( camera.position.z > 45 && player.target.z > 45)
+                  {
+			          player.moveForward = false;
+			      }
+                  if( camera.position.x < 30 && player.target.x < 30)
+                  {
+				      if( camera.position.z < 35 && player.target.z < 35 )
+					  {
+			            player.moveForward = false;
+				      }  		
+			      }
+                  if( camera.position.z < 30 && player.target.z < 30)
+                  {
+				      if( camera.position.x < 35 && player.target.x < 35 )
+					  {
+			            player.moveForward = false;
+				      }  		
+			      }				  
+			   } 
+
+               if (camera.position.x > 0 && camera.position.z < 0)
+               {
+                  if( camera.position.x > 45 && player.target.x > 45)
+                  {
+			          player.moveForward = false;
+			      }	
+                  if( camera.position.z < -45 && player.target.z < -45)
+                  {
+			          player.moveForward = false;
+			      }
+                  if( camera.position.x < 30 && player.target.x < 30)
+                  {
+				      if( camera.position.z > -35 && player.target.z > -35 )
+					  {
+			            player.moveForward = false;
+				      }  		
+			      }
+                    if( camera.position.z > -30 && player.target.z > -30)
+                    {
+				      if( camera.position.x < 35 && player.target.x < 35 )
+					  {
+			              player.moveForward = false;
+				      }  		
+			        }				  
+			   } 
+
+               if (camera.position.x < 0 && camera.position.z < 0)
+               {
+                  if( camera.position.x < -45 && player.target.x < -45)
+                  {
+			          player.moveForward = false;
+			      }	
+                  if( camera.position.z < -45 && player.target.z < -45)
+                  {
+			          player.moveForward = false;
+			      }
+
+                  if( camera.position.x > -30 && player.target.x > -30)
+                  {
+				      if( camera.position.z > -35 && player.target.z > -35 )
+					  {
+			            player.moveForward = false;
+				      }  		
+			      }
+                    if( camera.position.z > -30 && player.target.z > -30)
+                    {
+				      if( camera.position.x > -35 && player.target.x > -35 )
+					  {
+			              player.moveForward = false;
+				      }  		
+			        }
+				  
+			   }
+
+               if (camera.position.x < 0 && camera.position.z > 0)
+               {
+                  if( camera.position.x < -45 && player.target.x < -45)
+                  {
+			          player.moveForward = false;
+			      }	
+                  if( camera.position.z > 45 && player.target.z > 45)
+                  {
+			          player.moveForward = false;
+			      }
+
+                  if( camera.position.z < 30 && player.target.z < 30)
+                  {
+				      if( camera.position.x > -35 && player.target.x > -35 )
+					  {
+			            player.moveForward = false;
+				      }  		
+			      }
+                    if( camera.position.x > -30 && player.target.x > -30)
+                    {
+				      if( camera.position.z < 35 && player.target.z < 35 )
+					  {
+			              player.moveForward = false;
+			           }  		
+			         }
+				  
+			   }			   
+
+			    // topMessage.innerHTML = "X " + camera.position.x + "</br> Z " + camera.position.z + "</br> L: " + currentLocPlayer;     
+			
+				 renderer.render( scene, camera );			   
+		   	}
+			
+			// RUN ==========================================================
+
+			setup();
+			
+			function changePicture()
+			{
+ 	             var picGeometry = new THREE.PlaneGeometry(17.4, 12.3, 1,1);			
+                 var mat = new THREE.MeshBasicMaterial();
+				 l = arrPict.length + 1; 
+                 fileName = "1 (" + l + ").jpg";			 
+                 mat.map = new THREE.ImageUtils.loadTexture(fileName);			 
+                 var unit = new THREE.Mesh(picGeometry, mat);
+			     unit.position.set(38, 10.5, -49.9);
+                 arrPict.push(unit);	                			
+			
+			     numRoom = currentLocPlayer%4-1;
+				 if (numRoom < 0 ) { numRoom = 3; }
+				 arrRooms[numRoom].remove(arrPict[arrPict.length-2]);
+				 arrRooms[numRoom].add(arrPict[arrPict.length-1]);
+			}
+		
+		</script>
+		<div id = "message">test </div>
+	</body>
+</html>

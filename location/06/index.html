@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<style>
+			body {
+				margin: 0;
+				overflow: hidden;
+				background-color:0x9db3b5;				
+			}
+			
+			#info {
+			   font-size: 30px;
+			    color: #75b6a3;
+				position: absolute;
+				top: 0px;
+				width: 100%;
+				padding: 5px;
+				text-align:center;
+			}
+			
+			a {
+			     margin: 10px;
+			     font-size: 20px;
+	             color: black;	
+                 border: 2px solid black; 
+                 padding: 5px;
+                 text-decoration: none;	
+                 padding: 5px 15px 5px 15px;				 
+			}
+			
+			a:hover {
+	             color:black;	
+                 border: 2px solid black; 			 
+                 text-decoration: none;	
+                 background-color: #cda434;					 
+			}
+			
+		</style>
+	</head>
+	<body>
+		
+		<div id="info"></div>	
+	
+		<script src="three.js"></script>
+		<script src="FirstPersonControls.js"></script>
+        <script src="MTLLoader.js"></script>
+        <script src="OBJMTLLoader.js"></script>		
+		<script>
+
+			// GLOBALS ======================================================
+			
+
+		   
+		   var info1 = " *_* </br>";
+		   var info2 = " *******!!!!!*******</br>";
+		   var infoEnd =  " <a href=\"http://js.otrisovano.ru/location/05\"> <-&nbsp; Предыдущий шаг </a> " +
+                          " <a href=\"http://js.otrisovano.ru/location/07\"> Следующий шаг&nbsp; -> </a>" ;				   
+
+		   var  topMessage = document.getElementById("info");
+		   topMessage.style.color = "#ffffff";		
+           topMessage.innerHTML = info1; 
+		   
+	       setTimeout("deleteText()", 6000);	
+
+           function deleteText()
+           {
+               topMessage = document.getElementById("info");
+               topMessage.innerHTML = ""; 				 
+		   }
+
+           function deleteText2()
+           {
+               topMessage = document.getElementById("info");
+               topMessage.innerHTML = infoEnd; 				 
+		   }
+		   
+		   var  topMessage = document.getElementById("info");
+           topMessage.innerHTML = info1; 				
+			
+		   var camera, scene, renderer, player, clock;
+		   var INV_MAX_FPS = 0.01, frameDelta = 0;
+	       var colorEnv = 0x060606;
+
+		   var gameStatus = "load";
+		   
+		   var floorHeight =  22.2 ;
+           var playerYCalk;
+
+		   var geomFloor = 0;  
+           var geomBreak = 0;		   
+		   var geomFloorTop = 0;
+           var geomNumber = 0;
+           var geomPlate = 0;
+           var pointLight;
+           var pointLight2;			   
+           var pointLightDown  = true;          
+           var arrFloors = [];
+		   
+		   // Constructor FloorTop ==========================================
+		   
+		   function floorTopConstructor(y)
+		   {
+		      this.statusMapUpdate = true;
+		      this.status = "floorTop";
+		      this.floorStatus = Math.floor(y/floorHeight);
+			  this.geomFloor = geomFloorTop.clone();
+			  this.geomFloor.position.x = 0;
+			  this.geomFloor.position.z = 0;			  
+			  this.geomFloor.position.y = y;
+			  scene.add(this.geomFloor);
+
+			  this.deleteAll = function()
+			  {
+                scene.remove(this.geomFloor);			     
+              }			  
+           }		   
+		   
+		   // Constructor Floors ============================================
+		   
+		   function floorConstructor(y, n)
+		   {
+		      this.status = "stair";
+			  this.exitChancheStatus = "none";
+   		  
+		      this.floorStatus = Math.floor(y/floorHeight);
+			  this.number = (n-3)*(-1); 
+			  		  
+		      this.geomFloor = geomFloor.clone();
+			  this.geomFloor.position.x = 0;
+			  this.geomFloor.position.z = 0;			  
+			  this.geomFloor.position.y = y;
+			  scene.add(this.geomFloor);
+			  
+   			  this.canvas = document.createElement('canvas');
+              this.canvas.width = this.canvas.height = 100;
+			  
+              this.ctx = this.canvas.getContext('2d');	
+              this.ctx.font = '50pt Arial';
+              this.ctx.fillStyle = 'white';
+              this.ctx.textAlign = "center";
+              this.ctx.textBaseline = "middle";
+              this.ctx.fillText( this.number , this.canvas.width / 2, this.canvas.height / 2);				
+					
+              this.mat = new THREE.MeshPhongMaterial();
+              this.mat.map = new THREE.Texture(this.canvas);
+              this.mat.shading = THREE.SmoothShading;
+              this.mat.transparent = true;
+              this.mat.depthWrite = false;
+              this.mat.color = new THREE.Color(0x061c30);
+              
+			  this.statusMapUpdate = false;			  
+			   				
+              geometry = new THREE.PlaneGeometry( 3, 3, 1, 1 );
+              this.geomNumber = new THREE.Mesh( geometry, this.mat );
+			  this.geomNumber.position.set( 3.5, 14, 17.3 ); 
+			  this.geomNumber.rotation.y = 3.14; 
+              this.geomFloor.add(this.geomNumber);	
+			  
+			  
+			  this.geomBreak = geomBreak.clone();
+			  this.geomBreak.position.x = 3.5;
+              this.geomBreak.position.z = 18.5;
+              this.geomBreak.position.y = 6.3; 			  
+			  this.geomFloor.add( this.geomBreak )  
+			  
+			  this.deleteAll = function()
+			  {
+			    this.geomFloor.remove(this.geomBreak);
+			    this.geomFloor.remove(this.geomNumber);	
+                scene.remove(this.geomFloor); 
+                this.ctx = null;
+                this.canvas = null;
+                this.mat = null; 				
+			  }
+	
+			  this.chancheCtx = function(par)
+			  {
+			     this.avatar = par;
+                 this.ctx = this.canvas.getContext('2d');                
+                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);				 
+                 this.ctx.font = '50pt Arial';
+                 this.ctx.fillStyle = 'white';
+                 this.ctx.textAlign = "center";
+                 this.ctx.textBaseline = "middle";
+                 this.ctx.fillText( this.avatar , this.canvas.width / 2, this.canvas.height / 2);
+                 this.geomNumber.rotation.z = - 1.6;				 
+			  }
+			  
+			  this.chancheCtx = function(par)
+			  {
+			     this.avatar = par;
+                 this.ctx = this.canvas.getContext('2d');                
+                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);				 
+                 this.ctx.font = '50pt Arial';
+                 this.ctx.fillStyle = 'white';
+                 this.ctx.textAlign = "center";
+                 this.ctx.textBaseline = "middle";
+                 this.ctx.fillText( this.avatar , this.canvas.width / 2, this.canvas.height / 2);
+                 this.geomNumber.rotation.z = - 1.6;				 
+			  }
+ 
+              this.addSmile = function()
+              {
+			     this.avatar = ":)";
+                 this.ctx = this.canvas.getContext('2d');                
+                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);				 
+                 this.ctx.font = '50pt Arial';
+                 this.ctx.fillStyle = 'white';
+                 this.ctx.textAlign = "center";
+                 this.ctx.textBaseline = "middle";
+                 this.ctx.fillText( this.avatar , this.canvas.width / 2, this.canvas.height / 2);
+                 //this.geomNumber.rotation.z = - 1.6;
+		         this.statusMapUpdate = false;				 
+			  }	
+			  
+              this.addWell = function()
+              {
+			     this.avatar = "!!!";
+                 this.ctx = this.canvas.getContext('2d');                
+                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);				 
+                 this.ctx.font = '50pt Arial';
+                 this.ctx.fillStyle = 'white';
+                 this.ctx.textAlign = "center";
+                 this.ctx.textBaseline = "middle";
+                 this.ctx.fillText( this.avatar , this.canvas.width / 2, this.canvas.height / 2);
+                 //this.geomNumber.rotation.z = - 1.6;
+		         this.statusMapUpdate = false;				 
+			  }	
+
+              this.addFinish = function()
+              {
+			     this.avatar = "{:)";
+                 this.ctx = this.canvas.getContext('2d');                
+                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);				 
+                 this.ctx.font = '50pt Arial';
+                 this.ctx.fillStyle = 'white';
+                 this.ctx.textAlign = "center";
+                 this.ctx.textBaseline = "middle";
+                 this.ctx.fillText( this.avatar , this.canvas.width / 2, this.canvas.height / 2);
+                 this.geomNumber.rotation.z = - 1.6;
+		         this.statusMapUpdate = false;	
+                
+			     this.geomFloor.remove( this.geomBreak );
+			     var cubeGeometry3 = new THREE.BoxGeometry(10, 20, 2);
+                 var cubeBumpMaterial3 = new THREE.MeshBasicMaterial();
+                 cubeBumpMaterial3.color = new THREE.Color(0xffffff);				
+                 this.geomBreak = new THREE.Mesh(cubeGeometry3, cubeBumpMaterial3);
+			     this.geomBreak.position.x = 3.5;
+                 this.geomBreak.position.z = 19;
+                 this.geomBreak.position.y = 6.3; 			  
+			     this.geomFloor.add( this.geomBreak );
+				
+				 this.pointLight = new THREE.PointLight();
+                 this.pointLight.color = new THREE.Color(0xc4fff6);
+                 this.pointLight.intensity = 2;
+                 this.pointLight.distance = 30;		
+                 this.pointLight.position.x = 3.5; 	
+                 this.pointLight.position.y = 6.3;
+                 this.pointLight.position.z = 10;				  
+				 this.geomFloor.add(this.pointLight);				
+ 
+ 			     this.exitChancheStatus = "changed";                
+
+			  }				  
+
+              this.geomNumRotate = function()
+              {
+                this.geomNumber.rotation.z = - 1.6;			  
+			  }			  
+             
+              this.update = function()
+              {
+				 if (this.statusMapUpdate == false )
+				 {
+					 this.mat.map.needsUpdate = true;
+					 this.statusMapUpdate == true;
+				 }
+
+                 if (arrFloors.length > 10 && arrFloors[10] != 0 )
+                 {
+                     arrFloors[10].addWell();
+                     arrFloors[10].mat.map.needsUpdate = true; 
+                     arrFloors[10].statusMapUpdate = false; 					 
+				 }	
+
+                 if (arrFloors.length > 18)
+                 {
+				    if( arrFloors[18].exitChancheStatus == "none")
+					{
+                      arrFloors[18].addFinish();
+                      arrFloors[18].mat.map.needsUpdate = true; 
+                      arrFloors[18].statusMapUpdate = false;
+                    }					  
+				 }				 
+			  }			  
+		   }
+		   
+		   // Constructor Player Calculator Y ==============================
+		   
+		   function plCalculatorY(arr)
+		   {
+		      this.linkArrFloors = arr;
+		      this.floorStatus = 0;
+			  this.floorStatusOld = 0;
+			  this.chancheFloor = false;
+			  this.place = "none";
+			  this.place = "none";			  
+			  this.distStairs = 11;
+			  this.distOneStair = this.distStairs/8;
+
+              this.update = function()
+              {			  
+			   // collision walls
+               if( camera.position.x > 8 && player.target.x > 8)
+               {
+			       player.moveForward = false;
+			   }
+               if( camera.position.x < - 1.7  &&  player.target.x < -1.7)
+               {
+			       player.moveForward = false;
+			   }			   
+               if( camera.position.z > 15  && player.target.z > 15 )
+               {
+			       player.moveForward = false;
+			   }
+               if( camera.position.z < -13 && player.target.z < -13 )
+               {
+			       player.moveForward = false;
+			   }
+			   
+			   // entryway1
+               if( camera.position.x < 8 &&  camera.position.x > -1.7  &&
+       			    camera.position.z < 15 && camera.position.z > 5.15 )
+			   {		   
+				 this.placeOld =  this.place; 
+				 this.place = "enterway1";	
+				 this.checkChancheFloor();
+				 
+			     camera.position.y = this.floorStatus * floorHeight + 8;
+			   }
+			   // entryway2 
+               if( camera.position.x < 8 &&  camera.position.x > -1.7  &&
+       			    camera.position.z < -5.75 && camera.position.z > -13 )
+			   {
+				 this.placeOld =  this.place; 				 
+				 this.place = "enterway2";				   
+			     camera.position.y = this.floorStatus * floorHeight + 8  + floorHeight/2;			 
+			   }			   
+			   
+			   info1 += "</br> place:" + this.place;
+			   
+			   // left stair
+               if ( camera.position.x < 3.1 && camera.position.z < 5.15 && camera.position.z > -5.75 )
+			    {
+				    this.placeOld =  this.place; 				
+				    this.place = "stair1";	
+					
+			        camera.position.y = this.floorStatus * floorHeight + 8 + 
+					                    Math.floor((this.distStairs  - camera.position.z - 5.75 )/this.distOneStair)*1.5;
+										
+                    info1 += "</br> stair:" + Math.floor((this.distStairs  - camera.position.z - 5.75 )/this.distOneStair); 					
+				}		
+               // right stair
+               if ( camera.position.x > 3.1 && camera.position.z < 5.15 && camera.position.z > -5.75  )
+			   {	
+				    this.placeOld =  this.place; 			   
+				    this.place = "stair2";	
+					this.checkChancheFloor();
+					
+			        camera.position.y = this.floorStatus * floorHeight + floorHeight/2 + 8 + 
+					                    Math.floor((camera.position.z + 5.75)/this.distOneStair)*1.5;
+					
+                    info1 += "</br> stair:" + Math.floor((camera.position.z + 5.75)/this.distOneStair); 						
+			   }
+			   
+               if( this.floorStatus == 3 &&  player.target.x < 3.1 && player.target.z < 5.15  )
+               {
+			      player.moveForward = false;
+			   }
+
+               if( player.target.y > geomPlate.position.y-5 )
+               {
+			      player.moveForward = false;
+			   }
+			   
+			  }
+			  
+              this.checkChancheFloor = function()
+              {
+			     if(this.placeOld == "enterway1" && this.place == "stair2")
+				 {
+				    this.floorStatus -= 1;
+					if (this.linkArrFloors[this.floorStatus*(-1)+2].avatar == ":(")
+					{
+					  if ( this.linkArrFloors[this.floorStatus*(-1)+3].avatar != ":(")
+                      {
+					    this.linkArrFloors[this.floorStatus*(-1)+3].geomNumRotate();						  
+					  }					  
+					  this.linkArrFloors[this.floorStatus*(-1)+3].addSmile();
+
+					  this.linkArrFloors[this.floorStatus*(-1)+4].addSmile();
+					  this.linkArrFloors[this.floorStatus*(-1)+4].geomNumRotate() ;					  
+					}   
+				 }
+				 
+			     if(this.placeOld == "stair2" && this.place == "enterway1")
+				 {
+				    this.floorStatus += 1;				
+				 }				 
+			  }		 
+		   }
+	   
+
+			// SETUP ========================================================
+
+			function setup() {
+				document.body.style.backgroundColor = colorEnv;
+				setupThreeJS();
+				setupWorld();
+
+				requestAnimationFrame(function animate() {
+					draw();
+
+					frameDelta += clock.getDelta();
+					while (frameDelta >= INV_MAX_FPS) 
+					{
+		               //player.moveForward = false;				
+				        player.update(INV_MAX_FPS, camera.position.y);						
+						frameDelta -= INV_MAX_FPS;
+					}
+
+					requestAnimationFrame( animate );
+				});
+			}
+
+			function setupThreeJS() {
+				scene = new THREE.Scene();
+			   // scene.fog = new THREE.FogExp2(colorEnv, 0.03);
+
+				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera.position.x = 0;			
+				camera.position.y = 8;
+				camera.position.z = 12;		
+
+				renderer = new THREE.WebGLRenderer({antialias: true});
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setClearColorHex(colorEnv);					
+				renderer.shadowMapEnabled = true;
+				document.body.appendChild( renderer.domElement );
+
+                var ambientLight = new THREE.AmbientLight(0x6f7687);
+                ambientLight.name = 'ambientLight';
+                scene.add(ambientLight);
+				
+                var dirLight = new THREE.DirectionalLight(0xa7b66c);
+                dirLight.position.set(0, 20, -10);
+                scene.add(dirLight);
+
+				pointLight = new THREE.PointLight();
+                pointLight.color = new THREE.Color(0xc4fff6);
+                pointLight.intensity = 2;
+                pointLight.distance = 30;		
+                pointLight.position.x = 3.5; 	
+                pointLight.position.y = (-15)*floorHeight+6.3;
+                pointLight.position.z = 10;				  
+				scene.add(pointLight);	
+
+				pointLight2 = new THREE.PointLight();
+                pointLight2.color = new THREE.Color(0xc4fff6);
+                pointLight2.intensity = 2;
+                pointLight2.distance = 60;		
+                pointLight2.position.x = 3.5; 	
+                pointLight2.position.y = 50;
+                pointLight2.position.z = 10;				  
+				scene.add(pointLight2);				
+
+				clock = new THREE.Clock();
+				player = new THREE.FirstPersonControls(camera);
+				player.movementSpeed = 100;
+				player.lookSpeed = 0.1;
+			}
+
+			function setupWorld()
+			{
+			    playerYCalk = new plCalculatorY(arrFloors);
+						
+			    var cubeGeometry = new THREE.BoxGeometry(10, 12.7, 2);
+                var cubeBumpMaterial = new THREE.MeshPhongMaterial();
+                cubeBumpMaterial.map = THREE.ImageUtils.loadTexture("brick.jpg");
+                cubeBumpMaterial.bumpMap = THREE.ImageUtils.loadTexture("brick-b.jpg");
+                geomBreak = new THREE.Mesh(cubeGeometry, cubeBumpMaterial);	
+
+			    var cubeGeometry2 = new THREE.BoxGeometry(22, 2, 35);
+                geomPlate = new THREE.Mesh(cubeGeometry2, cubeBumpMaterial);
+                geomPlate.position.y = 100;	
+                geomPlate.position.x = -400;					
+				
+                scene.add(geomPlate);
+				
+		        loader1 = new THREE.OBJMTLLoader();
+                loader1.load("walls.obj", "st-m.mtl", function (dd) 
+			    {
+                    geomFloorTop = dd.clone();
+                    geomFloorTop.name = "topStair";	
+					geomFloorTop.position.set(-200,0,230);
+					scene.add(geomFloorTop);					
+                });					
+				
+				
+		        loader = new THREE.OBJMTLLoader();
+                loader.load("st.obj", "st-m.mtl", function ( gg ) 
+			    {	
+					geomFloor = gg.clone();
+					geomFloor.name = "stairs";
+					geomFloor.position.set(-200,0,200);
+					scene.add(geomFloor);
+                });	
+				
+			} 			
+			
+			// DRAW ================================
+
+			function draw() 
+			{
+			    if( gameStatus == "load" )
+				{
+			      if( scene.getObjectByName( "stairs" ) && scene.getObjectByName( "topStair" ) )
+                  {
+				     gameStatus = "init";
+				  }				  
+				}
+			   
+			    if( gameStatus == "init")
+			    {
+				  gameStatus = "playerDown";
+			      if( scene.getObjectByName( "stairs" )&& scene.getObjectByName( "topStair" ) )
+			      {
+				     g = new floorTopConstructor(3*floorHeight);
+					 arrFloors.push(g);
+					 
+			         for (c = 2; c > -4; c-- )
+				     {
+			            g = new floorConstructor(c*floorHeight, arrFloors.length );
+						arrFloors.push( g );
+                     } 					 
+			      }
+			    } 
+							
+                if (gameStatus == "playerDown")
+                {
+                   if (pointLightDown == true)
+				   {
+				      pointLight2.position.y -= 0.3; 
+					  if (pointLight2.position.y < - 450)
+					  {
+					     pointLightDown = false; 
+					  }
+				   }
+				   
+                   if (pointLightDown == false)
+				   {
+				      pointLight2.position.y += 0.3; 
+					  if (pointLight2.position.y > 100)
+					  {
+					     pointLightDown = true; 
+					  }
+				   }				   
+                     				
+                   for ( s=0; s<arrFloors.length; s++ )
+                   {
+				      if( arrFloors[s] != 0)
+                      {						  
+					    if ( arrFloors[s].status == "stair" )
+				        {
+                            arrFloors[s].update();
+				        }
+                      } 						
+				   }
+				   
+				   
+				   if (  Math.abs(playerYCalk.floorStatus)+6  > arrFloors.length )
+				   {
+			            g = new floorConstructor( (arrFloors.length-3)*floorHeight*(-1), arrFloors.length );
+						arrFloors.push( g );
+                        if(arrFloors.length == 8)
+                        {
+						  arrFloors[arrFloors.length-1].chancheCtx(">>");	
+						  arrFloors[arrFloors.length-1].statusMapUpdate = false;						  
+						} 						
+				   }
+				   
+				   if ( playerYCalk.floorStatus < -1)
+				   { 
+				          if (arrFloors[ playerYCalk.floorStatus*(-1)-1 ])
+						  {
+					         if (arrFloors[ playerYCalk.floorStatus*(-1)-1 ] != 0 )
+						     {
+				                md = arrFloors[playerYCalk.floorStatus*(-1)-1];
+						        arrFloors.splice(playerYCalk.floorStatus*(-1)-1, 1, 0 );
+                                md.deleteAll();
+                                md = null; 
+                                geomPlate.position.y = (playerYCalk.floorStatus+4)*floorHeight-5; 
+                                geomPlate.position.x = 0;	 								
+						     }
+                          }  							 
+				   }
+				   
+                   if ( playerYCalk.floorStatus < -2)
+				   {
+				      for (ai = 0; ai<  playerYCalk.floorStatus*(-1)+3; ai++ )
+					  {
+					     if (arrFloors[ai].status == "stair")
+						 {
+						   if(arrFloors[ai].avatar != ":(" || arrFloors[ai].avatar != "};{" )
+						   {
+					          arrFloors[ai].chancheCtx(":(");
+							  if (arrFloors[ai-1] == 0 )
+							  {
+					              arrFloors[ai].chancheCtx("};/");							  
+							  }
+						      arrFloors[ai].statusMapUpdate = false;
+						   }	  
+						 }  
+					  }
+				   }
+				   
+				   if ( playerYCalk.floorStatus == -15 && arrFloors[17].geomFloor.position.z+15-camera.position.z < 5 )
+				   {
+				      gameStatus = "end";
+		              topMessage.style.color = "#000000";					   
+				      topMessage.innerHTML = info2; 	
+	                  setTimeout("deleteText2()", 6000);				   
+				      gameStatus = "end";					 
+				   }
+                }
+
+                if (gameStatus == "end")
+                {
+				   player.moveForward = false;
+				 
+				}  				
+			  			
+		       player.moveBackward = false;
+               playerYCalk.update();	
+		       renderer.render( scene, camera );			 
+			}			
+
+			// RUN ==========================================================
+
+			setup();
+			
+			// Trash =========================================================
+			
+			
+		</script>
+		<!-- <div id = "message">test </div>-->
+	</body>
+</html>

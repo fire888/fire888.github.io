@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<style>
+			body {
+				margin: 0;
+				overflow: hidden;
+				background-color:0x9db3b5;				
+			}
+			
+			#interface {
+			    color: red;
+				position: absolute;
+				top: 0px;
+				width: 100%;
+				padding: 0px;
+				margin: 20px;
+				text-align:center;
+			    border: 1px solid red; 
+			}
+			
+			#mess {
+			    font-size: 30px;			
+			    color: red;
+				padding: 10px;
+				margin: 20px;
+				text-align:center;
+			}
+			#bullets {
+			    color: black;
+				padding: 10px;
+				margin: 20px;
+				text-align:left;
+			    border: 1px solid red; 
+			}	
+
+			a {
+			     margin: 10px;
+			     font-size: 20px;
+	             color: black;	
+                 border: 2px solid black; 
+                 padding: 5px;
+                 text-decoration: none;	
+                 padding: 5px 15px 5px 15px;				 
+			}
+			
+			a:hover {
+	             color:black;	
+                 border: 2px solid black; 			 
+                 text-decoration: none;	
+                 background-color: #cda434;					 
+			}			
+			
+            @font-face {
+                font-family: t; 
+                src: url(kull.ttf); 
+            }			
+			
+		</style>
+	</head>
+	<body>
+		
+		<div id="interface"> <div id = "bullets"> </div> <div id="mess"></div>  </div>	
+	
+		<script src="three.js"></script>
+		<script src="FirstPersonControls.js"></script>
+        <script src="MTLLoader.js"></script>
+        <script src="OBJMTLLoader.js"></script>		
+		<script>
+
+			// GLOBALS ======================================================
+
+		   var info1 = "! Take 100 bullets ! </br>";
+		   var info2 = " !!!***Nice!***!!!";
+		   var infoEnd =  " <a href=\"http://js.otrisovano.ru/location/06\"> <- &nbsp; Previous step </a> " +
+                          " <a href=\"http://js.otrisovano.ru/location/08\">   Next step &nbsp; -> </a>" ;				   
+		   
+           windowH = document.documentElement.clientHeight;
+           windowW = document.documentElement.clientWidth;		   
+		   var  interFace = document.getElementById("interface");		 
+           interFace.style.color = "#ffffff";
+           interFace.style.width =  windowW-40+"px";
+           interFace.style.height =  windowH -40 + "px";		   
+
+           var topMessage = document.getElementById("mess");
+           topMessage.innerHTML = info1; 
+		   
+	       setTimeout("deleteText()", 6000);	
+		   
+           function deleteText()
+           {
+               topMessage = document.getElementById("mess");
+               topMessage.innerHTML = ""; 				 
+		   }
+
+           function deleteText2()
+           {
+               topMessage = document.getElementById("mess");
+               topMessage.innerHTML = infoEnd; 				 
+		   }		   
+
+           var showBullets = document.getElementById("bullets");
+           showBullets.innerHTML = "";		   
+			
+			var camera, scene, renderer, player, clock;
+			var INV_MAX_FPS = 0.01, frameDelta = 0;
+			var colorEnv = 0x000000;
+			
+            var avatars = ['A','a','B','b','C','c','D','d','E','e','F','f','G','g','I','i','H','h','J','j','K','r','L','l','M','m','N','n','O','o','Q','q','R','r','S','s','V','v','W','w','X','x','Y','y','Z','z'];	
+            var arrUnits = []; 
+            var arrBullets = [];
+
+            var playerBullets = 0;
+            var gameStatus = "play";
+            var arrStrokeBul = [];
+            var endCount = 0; 
+            var playerBulletGeom;			
+
+	       // Constructor Unit =============================================
+           
+           function pointsPathConstructor(group, ava, color,posX, posY, posZ)
+           {
+		      this.status = "init";
+		      this.color = color;
+		      this.group = group;
+              this.moveForvard = true;  
+			  this.countTimer =0;
+			  this.posX = posX;
+			  this.posY = posY;
+			  this.posZ = posZ;
+              //this.arrFog = [];			  
+			  
+			  
+			  //fog
+		      var cubeGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+              var cubeMaterial = new THREE.MeshBasicMaterial( {color: this.color} );
+              this.fogCube = new THREE.Mesh(cubeGeometry, cubeMaterial);	
+              this.arrFog = [];			  
+			 			
+              this.update = function()
+              {
+			    if (this.status == "init")
+				{
+				    if(this.countTimer > 300)
+					{
+					   this.status = "play";
+					   this.countTimer = 0;
+					}
+				    this.initMovies();
+
+					if (this.countTimer == 70)
+					{
+					   this.createGeom();
+					}
+					this.countTimer++;					
+				}
+                			
+			    if (this.status == "play")
+				{
+				   this.walkMovies();  
+				   if(Math.random()*1000<1)
+	               {
+				      this.status = "prepearToDiy";
+				   } 				 
+				  
+                   if (this.group == "white")
+                   { 
+				     if (this.moveForvard == true)
+				     {
+				        this.dummy.position.x += 0.2;
+                     }else
+				     {
+				        this.dummy.position.x -= 0.2;
+				     }
+				     if( this.dummy.position.x > 150)
+				     {
+				         this.moveForvard = false;
+				     }
+				     if ( this.dummy.position.x < 0 )
+				     {
+
+				        this.moveForvard = true;					   
+				     }
+				  }			
+                  if (this.group == "red")
+                  {
+				     if (this.moveForvard == true)
+				     {
+				        this.dummy.position.x -= 0.2;
+                     }else
+				     {
+				        this.dummy.position.x += 0.2;
+				     }
+				     if( this.dummy.position.x > 150)
+				     {
+				         this.moveForvard = true;
+				     }
+				     if ( this.dummy.position.x < 0 )
+				     {
+				         this.moveForvard = false;					   
+				     }
+				   }				 				
+			    }
+				
+				if (this.status == "prepearToDiy")
+				{
+				   this.countTimer ++;
+				   this.prepearToDiyMovies();
+                   if(this.countTimer > 500)
+                   {
+				      this.status = "die";
+					  this.countTimer = 0;
+				   } 				   
+				}
+				
+				if (this.status == "die")
+				{
+				   this.countTimer ++;
+				   this.dieMovies(); 
+                   if(this.countTimer > 150)
+                   {
+				      this.status = "removeBody";
+					  this.countTimer = 0;
+				   } 				   
+				}
+				
+				if (this.status == "removeBody")
+				{
+				   this.countTimer ++;
+				   this.removeBodyMovies();
+				}
+            }
+			
+			this.initMovies = function()
+			{
+				// Circle
+				if (!this.circleNew)
+				{
+		          var cubeGeometry = new THREE.BoxGeometry(20, 20, 20);
+                  var cubeMaterial = new THREE.MeshBasicMaterial( {color: 0x000000 } );
+                  this.groundBlackCube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+				  this.groundBlackCube.position.set(this.posX,-15,this.posZ);
+                  scene.add(this.groundBlackCube);				  
+				
+				  var circleRadius = 5;
+				  var circleShape = new THREE.Shape();
+				  circleShape.moveTo( 0, circleRadius );
+				  circleShape.quadraticCurveTo( circleRadius, circleRadius, circleRadius, 0 );
+				  circleShape.quadraticCurveTo( circleRadius, -circleRadius, 0, -circleRadius );
+				  circleShape.quadraticCurveTo( -circleRadius, -circleRadius, -circleRadius, 0 );
+				  circleShape.quadraticCurveTo( -circleRadius, circleRadius, 0, circleRadius );
+				  circleShape.autoClose = true;
+			      var points = circleShape.createPointsGeometry();
+				  this.circleNew = new THREE.Line( points, new THREE.LineBasicMaterial( { color:this.color, linewidth: 10} ) );
+				  this.circleNew.position.set( this.posX, -4 , this.posZ );
+				  this.circleNew.rotation.set( Math.PI/2, 0, 0 );
+				  this.circleNew.scale.set( 0.01, 0.01, 0.01 );
+				  scene.add( this.circleNew );
+			    }
+				
+				if (this.circleNew.scale.y < 1.5)
+				{
+                  this.circleNew.scale.x +=0.01;
+                  this.circleNew.scale.y +=0.01;
+                  this.circleNew.scale.z +=0.01;
+				}  
+		  
+		        if(this.dummy)
+                {
+				   if(this.dummy.position.y < 2)
+				   {
+				     this.dummy.position.y += 0.13;
+				   }
+				   //line update 
+			       for (it=0; it<this.arrPoints.length; it++)
+			       { 
+                       this.arrSpeedsPoints[it][1] += this.arrSpeedsPoints[it][0]; 
+                       this.arrSpeedsPoints[it][3] += this.arrSpeedsPoints[it][2];
+                       this.arrSpeedsPoints[it][5] += this.arrSpeedsPoints[it][4];				   
+				   
+				       this.arrPoints[it].x = 4 * Math.sin(this.arrSpeedsPoints[it][1]* Math.PI);
+				       this.arrPoints[it].z = 4 * Math.sin(this.arrSpeedsPoints[it][3] * Math.PI);
+				       this.arrPoints[it].y = 4 * Math.sin(this.arrSpeedsPoints[it][5] * Math.PI)-3;
+				   }
+                   this.spline.arrPoints = this.arrPoints;
+                   this.splinePoints = this.spline.getPoints(this.countCurves);				  
+				   this.line.geometry.vertices =  this.splinePoints;
+                   this.line.geometry.verticesNeedUpdate = true;
+				  
+				   //ava
+				   if (this.statusMapUpdate == false)
+                   {
+			    	   this.mat.map.needsUpdate = true;				
+			    	   this.statusMapUpdate = true;
+			       }				   			   
+				}				
+                if (this.countTimer == 299)
+                {
+		            scene.remove(this.groundBlackCube);		  
+			        scene.remove(this.circleNew);		  
+			    } 				  
+			}
+
+            this.createGeom = function()
+            {
+		      //dummy
+		      var cubeGeometry = new THREE.BoxGeometry(0.001, 0.001, 0.001);
+              var cubeMaterial = new THREE.MeshBasicMaterial( {color: this.color} );
+              this.dummy = new THREE.Mesh(cubeGeometry, cubeMaterial);			  
+              this.dummy.position.set( posX, -15, posZ);
+			  this.dummy.rotation.y = - 1.5;
+			  this.dummyCones = this.dummy.clone();			  
+              scene.add(this.dummy);
+			  
+			  //avatar
+			  this.avatar = ava; 
+   			  this.canvas = document.createElement('canvas');
+              this.canvas.width = this.canvas.height = 300;
+			  
+              this.ctx = this.canvas.getContext('2d');		  
+              this.ctx.font = '280pt t';
+              this.ctx.fillStyle = 'white';
+              this.ctx.textAlign = "center";
+              this.ctx.textBaseline = "middle";			  
+              this.ctx.fillText( this.avatar , this.canvas.width / 2, this.canvas.height / 2);
+		  
+					
+              this.mat = new THREE.MeshBasicMaterial( { color:this.color } );
+              this.mat.map = new THREE.Texture(this.canvas);
+              this.mat.shading = THREE.SmoothShading;
+              this.mat.side = THREE.DoubleSide;			  
+              this.mat.transparent = true;
+              this.mat.depthWrite = false;
+              
+			  this.statusMapUpdate = false;			  
+			   				
+              this.planeAva = new THREE.PlaneGeometry( 8, 8, 1, 1 );
+              this.geomAva = new THREE.Mesh( this.planeAva, this.mat );
+			  this.geomAva.position.set( 0, 4, 0 ); 
+			  this.geomAva.rotation.y = 0; 
+              this.dummy.add(this.geomAva);	
+              	
+			  
+			  // line
+		      this.countPoints = 20;
+			  this.countCurves = 100;
+			  
+              this.arrPoints = [];		   
+		      for ( ix = 0; ix < this.countPoints-1; ix ++ )
+			  {
+			       this.arrPoints.push( new THREE.Vector3(Math.random()*10-5,Math.random()*10-5, Math.random()*10-5) );
+			  }
+			  this.arrPoints.push( this.arrPoints[0] ); 
+			  
+              this.arrSpeedsPoints = [];
+			  for ( im = 0; im < this.countPoints; im ++ )
+			  {
+			     arr = [];
+			     arr.push(Math.random()*0.1-0.05, 0, Math.random()*0.1-0.05, 0, Math.random()*0.1-0.05, 0);
+				 this.arrSpeedsPoints.push(arr); 
+			  }		  
+
+			  this.spline = new THREE.SplineCurve3(this.arrPoints);	
+              this.splinePoints = this.spline.getPoints(this.countCurves);			  
+              this.geometry = new THREE.Geometry();
+              this.geometry.vertices = this.splinePoints;
+         	  this.material = new THREE.LineBasicMaterial({  color: this.color });
+              this.line = new THREE.Line(this.geometry, this.material);
+              this.line.geometry.verticesNeedUpdate = true;				
+              this.dummy.add(this.line);
+
+		      // cone
+		      this.dummy.add(this.dummyCones);
+		      this.dummyCones.position.set(0,0,0);
+		      this.coneGeometry =  new THREE.CylinderGeometry( 0.4, 0, 3, 6, 2 );			
+              this.cubeBumpMaterial = new THREE.MeshBasicMaterial( { color:this.color } );
+              this.cone = new THREE.Mesh(this.coneGeometry, this.cubeBumpMaterial);	
+              this.cone.position.set(0,0,0);
+              
+			  this.arrCones = [];
+              for (i=0; i<8; i++)
+              {
+				  cube = this.cone.clone();
+                  cube.position.set( Math.sin(i / 8 * Math.PI * 2)*5, -3, Math.cos(i / 8 * Math.PI * 2)*5); 
+				  cube.rotation.x =  ( Math.PI/2 ); 
+                  cube.rotation.z =   -( Math.PI*2/8)*i + Math.PI; 				  
+	              this.dummyCones.add( cube );
+                  this.arrCones.push(cube);				  
+			  }				
+			
+			
+			} 			
+					
+			this.walkMovies = function()
+            {
+				  //line update 
+			      for (it=0; it<this.arrPoints.length; it++)
+			      { 
+                     this.arrSpeedsPoints[it][1] += this.arrSpeedsPoints[it][0]; 
+                     this.arrSpeedsPoints[it][3] += this.arrSpeedsPoints[it][2];
+                     this.arrSpeedsPoints[it][5] += this.arrSpeedsPoints[it][4];				   
+				   
+				     this.arrPoints[it].x = 4 * Math.sin(this.arrSpeedsPoints[it][1]* Math.PI);
+				     this.arrPoints[it].z = 4 * Math.sin(this.arrSpeedsPoints[it][3] * Math.PI);
+				     this.arrPoints[it].y = 4 * Math.sin(this.arrSpeedsPoints[it][5] * Math.PI)-3;
+				  }
+                  this.spline.arrPoints = this.arrPoints;
+                  this.splinePoints = this.spline.getPoints(this.countCurves);				  
+				  this.line.geometry.vertices =  this.splinePoints;
+                  this.line.geometry.verticesNeedUpdate = true;
+
+				  //boxes update 
+                  if (Math.random()*200<3)
+                  {
+				     f = this.fogCube.clone();
+				     f.position.set(Math.random()*5-2.5+this.dummy.position.x,Math.random()*2-6+this.dummy.position.y,Math.random()*5-2.5+this.dummy.position.z)
+				     this.arrFog.push(f);
+				     scene.add(f);
+				  } 				
+				  for ( ic = 0; ic < this.arrFog.length; ic ++)
+				  {
+				      this.arrFog[ic].position.y += 0.06;
+  				      this.arrFog[ic].rotation.z += 0.1;
+  				      this.arrFog[ic].rotation.x += 0.1; 	
+                      if (this.arrFog[ic].position.y > 3)
+                      {
+				          md = this.arrFog[ic];
+				    	  this.arrFog.splice(ic, 1);
+				    	  ic --;
+                          scene.remove(md); 					  
+				      } 				   
+			   	  }
+				
+			    	//ava update 
+				  if (this.statusMapUpdate == false)
+                  {
+			    	  this.mat.map.needsUpdate = true;				
+			    	  this.statusMapUpdate = true;
+			      }
+				
+				  //cone update
+				  this.dummyCones.rotation.y += 0.05;	
+				
+                  if ((Math.random()*200<1)&&(this.arrCones.length>0))
+                  {
+				     //alert("!");
+				     md = this.arrCones[0];
+				     geomBullet = this.arrCones[0].clone();
+				     b = new ConstructorBullets(geomBullet, this.group,
+                            				   this.dummy.position.x+md.position.x,
+											   this.dummy.position.z+md.position.z, 0.01, 0.01);
+				     arrBullets.push(b);
+				     this.arrCones.splice(0, 1);				   
+				     this.dummyCones.remove(md);
+				   } 			   
+              }
+			  
+			  this.prepearToDiyMovies = function()
+			  {   
+			      // line
+				  for (id=0; id<this.arrPoints.length; id++)
+			      { 
+				     if (this.arrPoints[id].y > -7)
+					 {
+				        this.arrPoints[id].y -= 0.1;
+				     } 		
+				  }
+                  this.spline.arrPoints = this.arrPoints;
+                  this.splinePoints = this.spline.getPoints(this.countCurves);				  
+				  this.line.geometry.vertices =  this.splinePoints;
+                  this.line.geometry.verticesNeedUpdate = true;	
+
+				  // fog 
+                  if (Math.random()*200<3)
+                  {
+				     f = this.fogCube.clone();
+				     f.position.set(Math.random()*5-2.5+this.dummy.position.x, -6 ,Math.random()*5-2.5+this.dummy.position.z)
+				     this.arrFog.push(f);
+				     scene.add(f);
+				  } 				
+				  for ( ic = 0; ic < this.arrFog.length; ic ++)
+				  {
+				      this.arrFog[ic].position.y += 0.06;
+  				      this.arrFog[ic].rotation.z += 0.1;
+  				      this.arrFog[ic].rotation.x += 0.1; 	
+                      if (this.arrFog[ic].position.y > 3)
+                      {
+				          md = this.arrFog[ic];
+				    	  this.arrFog.splice(ic, 1);
+				    	  ic --;
+                          scene.remove(md); 					  
+				      } 				   
+			   	  }	
+                  
+				  // cones
+				  if (this.dummyCones.position.y > -4)
+				  {
+				     this.dummyCones.rotation.y += 0.02;
+				     this.dummyCones.position.y -= 0.1;						 
+				  }
+				  
+				  //planeAva
+				  if (this.geomAva.position.y > -7)
+				  {
+				     this.geomAva.position.y -=0.3;	
+				     this.geomAva.rotation.z -=0.01;	 
+				     this.geomAva.rotation.x -=0.044;					 
+				  }
+			  }	
+
+              this.dieMovies = function()
+              {
+                  if (Math.random()*200<3)
+                  {
+				     f = this.fogCube.clone();
+				     f.position.set(Math.random()*5-2.5+this.dummy.position.x, -6 ,Math.random()*5-2.5+this.dummy.position.z)
+				     this.arrFog.push(f);
+				     scene.add(f);
+				  } 				
+				  for ( ic = 0; ic < this.arrFog.length; ic ++)
+				  {
+				      this.arrFog[ic].position.y += 0.06;
+  				      this.arrFog[ic].rotation.z += 0.1;
+  				      this.arrFog[ic].rotation.x += 0.1; 	
+                      if (this.arrFog[ic].position.y > 3)
+                      {
+				          md = this.arrFog[ic];
+				    	  this.arrFog.splice(ic, 1);
+				    	  ic --;
+                          scene.remove(md); 					  
+				      } 				   
+			   	  }				  
+			  }	
+             
+             this.removeBodyMovies = function()
+             {
+			      if (this.countTimer< 50)
+				  {
+                      if (Math.random()*200<200)
+                      {
+				         f = this.fogCube.clone();
+				         f.position.set(Math.random()*7-3.5+this.dummy.position.x, -6 ,Math.random()*7-3.5+this.dummy.position.z)
+				         this.arrFog.push(f);
+				         scene.add(f);
+					  }	 
+				  }
+				  
+				  for ( ic = 0; ic < this.arrFog.length; ic ++)
+				  {
+				      this.arrFog[ic].position.y += 1;
+  				      this.arrFog[ic].rotation.z += 0.1;
+  				      this.arrFog[ic].rotation.x += 0.1; 	
+                      if (this.arrFog[ic].position.y > 30)
+                      {
+				          md = this.arrFog[ic];
+				    	  this.arrFog.splice(ic, 1);
+				    	  ic --;
+                          scene.remove(md); 					  
+				      } 				   
+			   	  }				  
+
+                  if (this.countTimer == 15)
+                  {
+                     this.dummy.remove(this.geomAva);					  
+				  }
+				  
+				  if (this.countTimer == 20)
+				  {
+				     this.dummy.remove( this.line );	 
+				  }
+				  
+				  if (this.countTimer == 30)
+				  {
+				     for (dd = 0; dd < this.arrCones.length; dd ++ )
+					 {
+				          md = this.arrCones[dd];
+                          this.dummyCones.remove(this.arrCones[dd]); 						  
+				    	  this.arrCones.splice(dd, 1);		 
+					 }
+				     this.dummy.remove( this.dummyCones );
+				  }
+				  				  	
+				  if (this.countTimer > 400)
+				  {
+		             this.color = null;
+		             this.group = null;
+                     this.moveForvard = null; 
+			         this.countTimer = null;	  
+                     this.fogCube = null;
+                     this.arrFog = null;			  
+		        	 this.avatar = null;
+   			         this.canvas = null;			  
+                     this.ctx = null;	  				
+                     this.mat = null;	   				
+                     this.planeAva = null;
+                     this.geomAva = null;
+		             this.countPoints = null;	  
+                     this.arrPoints = null;	   	  
+                     this.arrSpeedsPoints = null;	  
+			         this.spline = null;
+                     this.splinePoints = null;		  
+                     this.geometry = null;
+         	         this.material = null;
+                     this.line = null;		
+		             this.coneGeometry =  null;		
+                     this.cubeBumpMaterial = null;
+                     this.cone = null;
+
+                     scene.remove(this.dummy);
+                     this.status = "removeFromArray";					 
+				  }
+				  
+			 }
+ 
+             this.playerRemoveBullets = function()
+             {
+			         aa = this.arrCones.length; 
+				     for (d1 = 0; d1 < aa; d1 ++ )
+					 {
+				          md = this.arrCones[0];
+                          this.dummyCones.remove(this.arrCones[0]); 						  
+				    	  this.arrCones.splice(0, 1);		 
+					 }			 
+			 }			 
+		  } 
+
+           // Constuctor Bullets =====================================================
+           function ConstructorBullets(geom, group, posX, posZ, speedX, speedZ)
+           {
+			  this.geom = geom;	
+              scene.add(this.geom);
+			  this.countLife = 0;
+              this.mustDelete = false; 			  
+			  this.speedX = Math.cos(this.geom.rotation.z+Math.PI/2)*0.1;
+			  this.speedZ = Math.sin(this.geom.rotation.z+Math.PI/2)*0.1;
+              this.geom.position.set(posX+this.speedX*60, -1, posZ+this.speedZ*60);			  
+              this.geom.rotation.z += Math.PI;			  
+			  
+		      this.group = group;
+              this.update = function()
+              {		    
+			     this.geom.position.x += this.speedX*10;
+				 this.geom.position.z += this.speedZ*10;
+				 
+				 this.countLife ++;
+				 if (this.countLife > 700)
+				 {
+				      this.mustDelete = true; 
+					  scene.remove(this.geom);
+				 }
+			  } 			  
+		   }
+		   		   
+		   // SETUP ========================================================
+
+			function setup() {
+				document.body.style.backgroundColor = colorEnv;
+				setupThreeJS();
+				setupWorld();
+
+				requestAnimationFrame(function animate() {
+					draw();
+
+					frameDelta += clock.getDelta();
+					while (frameDelta >= INV_MAX_FPS) 
+					{   
+
+		               //player.moveForward = false;				
+				        player.update(INV_MAX_FPS);						
+						frameDelta -= INV_MAX_FPS;
+
+					}
+
+					requestAnimationFrame( animate );
+				});
+			}
+
+			function setupThreeJS() 
+			{
+				scene = new THREE.Scene();
+			    //scene.fog = new THREE.FogExp2(0x000000, 0.03);
+
+				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera.position.x = -40;
+				camera.position.z = 75;				
+				camera.position.y = 4;
+
+                //camera.rotation.z = 1.5;				
+
+				renderer = new THREE.WebGLRenderer({antialias: true});
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setClearColorHex(colorEnv);					
+				renderer.shadowMapEnabled = true;
+				document.body.appendChild( renderer.domElement );
+
+                var ambientLight = new THREE.AmbientLight(0x332222);
+                ambientLight.name = 'ambientLight';
+                scene.add(ambientLight);
+				
+                var dirLight = new THREE.DirectionalLight(0xE2F7F8);
+                dirLight.position.set(-20, 20, 20);
+                scene.add(dirLight);		
+
+				clock = new THREE.Clock();
+				player = new THREE.FirstPersonControls(camera);
+				camera.lookAt(player.target);				
+				player.movementSpeed = 100;
+				player.lookSpeed = 0.1;
+			}
+
+			function setupWorld()
+			{
+			    //add Area
+			    var spline = new THREE.SplineCurve3( [new THREE.Vector3(0,-6,0),
+				                                      new THREE.Vector3(0,-6,150),
+												      new THREE.Vector3(150,-6,150), 
+												      new THREE.Vector3(150,-6,0), 
+												      new THREE.Vector3(0,-6,0)]);	
+                splinePoints = spline.getPoints(4);			  
+                geometry = new THREE.Geometry();
+                geometry.vertices = splinePoints;
+         	    material = new THREE.LineBasicMaterial({  color: 0x5b5b5b});
+                var line = new THREE.Line(geometry, material);
+                line.geometry.verticesNeedUpdate = true;
+                scene.add(line);
+
+			    var spline = new THREE.SplineCurve3( [new THREE.Vector3(0,20,0),
+				                                      new THREE.Vector3(0,20,150),
+												      new THREE.Vector3(150,20,150), 
+												      new THREE.Vector3(150,20,0), 
+												      new THREE.Vector3(0,20,0)]);	
+                splinePoints = spline.getPoints(4);			  
+                geometry = new THREE.Geometry();
+                geometry.vertices = splinePoints;
+         	    material = new THREE.LineBasicMaterial({  color: 0x5b5b5b});
+                var line2 = new THREE.Line(geometry, material);
+                line2.geometry.verticesNeedUpdate = true;
+                scene.add(line2);	
+                
+				//EndPlayerCone
+		        var coneGeometry =  new THREE.CylinderGeometry( 0.4, 0, 3, 6, 2 );			
+                var cubeBumpMaterial = new THREE.MeshBasicMaterial( { color: 0xffffff } );
+                playerBulletGeom = new THREE.Mesh( coneGeometry, cubeBumpMaterial);	
+                playerBulletGeom.position.set(0,0,0);				
+                
+								
+
+            }				
+ 			
+			// DRAW ================================
+
+			function draw() 
+			{  
+			    if (gameStatus == "play")
+				{
+				  endCount ++;
+
+                 
+				    if ((endCount%1000== 0)&&(arrUnits.length< 25))
+					{
+                      // add units            				
+			        	for (zi = 0; zi < 10; zi++ )
+			         	{	  
+				            var l = new pointsPathConstructor( "red", avatars[Math.floor(Math.random()*avatars.length)] , 0xd70f0f, 165, 2,  zi*15 );
+				            arrUnits.push(l);
+                        }
+				        for (zi = 0; zi < 10; zi++ )
+				        {	  
+				            var l = new pointsPathConstructor( "white", avatars[Math.floor(Math.random()*avatars.length)] , 0xffffff, -15, 2, zi*15 + 7 );
+				            arrUnits.push(l);
+                        }						
+					
+					}
+				  
+				  			  
+				
+			      //update units
+                  for (i=0; i<arrUnits.length; i++)
+                  {
+				      arrUnits[i].update();	
+                      if (arrUnits[i])
+                      {					  
+				         if (arrUnits[i].status == "removeFromArray")
+					    {
+					        arrUnits.splice(i,1);
+                             i--;					   
+					     }
+					  }	 
+				  }
+				
+				  //create units
+				  if (arrUnits.length < 25)
+				  {
+				     if (Math.random()*300<1)
+				     {
+				        var l = new pointsPathConstructor( "red", avatars[Math.floor(Math.random()*avatars.length)] , 0xd70f0f, 165, 2,  Math.floor(Math.random()*15)*10 );
+				        arrUnits.push(l);				
+				     }
+				
+				     if (Math.random()*300<1)
+				     {			
+				        var l = new pointsPathConstructor( "white", avatars[Math.floor(Math.random()*avatars.length)] , 0xffffff, -15, 2, Math.floor(Math.random()*15)*10 + 7 );
+				        arrUnits.push(l);				
+				     }
+                  } 					 
+				
+				  //update bullets 
+                  for (ii=0; ii<arrBullets.length; ii++)
+				  {
+				      arrBullets[ii].update();
+					  if (arrBullets[ii].mustDelete == true)
+					  {
+					      md = arrBullets[ii];
+					      arrBullets.splice(ii,1);
+					      ii --;
+					      md = null;
+					  }
+				   }
+				
+				   //player take bullets			
+				   for (xc = 0; xc < arrUnits.length; xc ++)
+				   {
+                      if ((arrUnits[xc].status == "die")||(arrUnits[xc].status == "prepearToDiy"))
+					  {
+					     if ( arrUnits[xc].arrCones.length > 0 )
+					     {
+					        if( (Math.abs(camera.position.x - arrUnits[xc].dummy.position.x) < 15) && (Math.abs(camera.position.z - arrUnits[xc].dummy.position.z) < 15) )
+						    {
+						       nn =  arrUnits[xc].arrCones.length; 
+							   arrUnits[xc].playerRemoveBullets();							
+						       for ( vb = 0; vb < nn; vb++ )
+							   {
+                                  showBullets.innerHTML += "<img src=\"bul.png\">,";	
+                                  playerBullets ++; 							   
+							   }
+						   }
+					    }
+					      
+				   	  }
+				
+				   }
+				   
+				   if (playerBullets> 100)
+				   {
+				      gameStatus = "launch";
+		              arrStrokeBul = showBullets.innerHTML.split(',');
+                      camera.rotation.set(0,0,0);
+                      endCount = 0;					  
+				   }
+				}
+
+                if (gameStatus == "launch")
+                {				   
+				   player.moveForward = false;
+				   player.moveBackward = false;				   
+				   endCount++;
+				   if ( endCount%15 == 0 && playerBullets > -1 )
+				   {
+                      showBullets.innerHTML = arrStrokeBul;
+				      arrStrokeBul.splice(0, 1);
+                       
+			    	  var conePl = playerBulletGeom.clone();
+                      conePl.position.set( Math.sin(playerBullets/ 100 * Math.PI * 2)*5+camera.position.x, 0, Math.cos(playerBullets / 100 * Math.PI * 2)*5+camera.position.z); 
+				      conePl.rotation.x =  ( Math.PI/2 ); 
+                      conePl.rotation.z =   -( Math.PI*2/100)*playerBullets + Math.PI; 				  
+	                  scene.add( conePl );			  					  
+					  playerBullets--;
+					  if ( playerBullets == 1 )
+					  {		
+					     gameStatus = "rotation";
+						 player.removeControlCamera = true;
+						 camera.rotation.x = 0;
+						 camera.rotation.z = 0;	
+                         speedCameraRotation = 0.001;						 
+					  }
+				    }
+
+				  //update Units 	
+                  for (i=0; i<arrUnits.length; i++)
+                  {
+				      arrUnits[i].update();				
+				      if (arrUnits[i].status == "removeFromArray")
+					  {
+					     arrUnits.splice(i,1);
+                         i--;					   
+					  }
+				  }
+				  
+				  //update bullets 
+                  for (ii=0; ii<arrBullets.length; ii++)
+				  {
+				      arrBullets[ii].update();
+					  if (arrBullets[ii].mustDelete == true)
+					  {
+					      md = arrBullets[ii];
+					      arrBullets.splice(ii,1);
+					      ii --;
+					      md = null;
+					  }
+				   }				  
+				  
+				} 
+
+                if (gameStatus == "rotation" )
+                {
+				        player.moveForward = false;
+				        player.moveBackward = false;
+				        speedCameraRotation += 0.001;
+				        camera.rotation.y -= speedCameraRotation;
+                        if (speedCameraRotation > 0.8)
+                        {
+						    camera.position.z = 10000;
+							camera.position.x = 10000;
+							gameStatus = "end";
+	                        showBullets.parentNode.removeChild(showBullets);
+                            topMessage.style.color = "#000000";	
+                            topMessage.style.fontSize = "50px";                                                 							
+				            topMessage.innerHTML = info2; 	
+							interFace.style.border = "0px";
+	                        setTimeout("deleteText2()", 6000);
+				            renderer.setClearColorHex(0xe4e3dc);							
+						} 						
+				}  				
+				
+		     	renderer.render( scene, camera );
+		   	}
+
+			// RUN ==========================================================
+
+			setup();
+		
+		</script>
+		<!--<div id = "message">test </div>-->
+	</body>
+</html>

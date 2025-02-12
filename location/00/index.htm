@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <style>  
+
+			body {
+				margin: 0;
+				overflow: hidden;
+		        background-color:#00083a;	
+			}
+			
+			#info {
+			    font-size: 20px;
+			    color: #00bbe6;
+				position: absolute;
+				top: 80px;
+				width: 100%;
+				text-align:center;
+			}
+			
+			a {
+			     margin: 10px;
+			     font-size: 60px;
+	             color: #00bbe6;	
+                 border: 2px solid #00bbe6; 
+                 padding: 5px;
+                 text-decoration: none;	
+                 padding: 5px 40px 5px 40px;				 
+			}
+			
+			a:hover {
+	             color: #00bbe6;	
+                 border: 2px solid #00bbe6; 			 
+                 text-decoration: none;	
+                 background-color: black;					 
+			}  
+  </style>
+</head><body>
+<div id="info">Впереди ждут локации. </br> Из каждой есть </br> выход. </br></br> <a href="http://js.otrisovano.ru/location/01"> Поехали </a> </br> </br> </br></div>
+ 
+<script>
+
+var canvas;
+var context;
+var unitsB = [];
+window.onload = function() 
+{
+       windowW=document.body.clientWidth; 
+       windowH=screen.height;   
+	   canvas = document.getElementById("canvas");
+	   canvas.width = windowW;
+	   canvas.height = windowH;
+       gameW = windowW;
+       gameH = windowH;  	   
+	   context = canvas.getContext("2d");  
+	    
+	   createObjects();
+	   setTimeout("drawFrame()", 20); 
+}
+
+function createObjects()
+{
+
+	unitsB = [];
+
+	for (n1 = 0; n1 < 30; n1 ++)
+    {
+        atom1 = new Molecula(); 
+     	unitsB.push(atom1);		
+	}
+	
+	unitsFon = [];
+
+	for (i = 0; i<5; i++)
+	{
+     fonB = new fonBezie();	
+	 unitsFon.push(fonB);	 
+	}
+}
+
+//constructor molecula
+function Molecula()
+{
+   this.statucAction = "walk";
+   this.enemyTargetX = 0;
+   this.enemyTargetY = 0;   
+   this.makeIskra = false;
+   this.makeIskraCount = 0;
+   this.iskraQuantity = 0;
+   this.iskraFlash = -1;  
+   this.countLife = 50;
+   this.dieTimer = 50;
+   this.life = true;   
+   this.pointX = Math.floor(Math.random()*gameW);
+   this.pointY = Math.floor(Math.random()*gameH);
+   this.spdPointX = Math.floor(Math.random()*10-5);
+   this.spdPointY = Math.floor(Math.random()*10-5);   
+   this.circleRad = Math.floor(Math.random()*20);
+   this.circleMore = true;
+   this.elements=[];
+   for (i=0; i < 6; i++)
+   {
+     cherv = new fBezie(this.pointX, this.pointY);
+	 this.elements.push(cherv);
+   }
+   
+   this.updatePoints = function ()
+   {
+     if (this.statucAction == "walk")
+	 {
+	   this.walking();
+	 }
+     if (this.statucAction == "goToEnemy")
+	 {
+	   this.goToEnemy();
+	 }
+     if (this.statucAction == "attak")
+  	 {
+      	this.attack();	
+     }	
+     if (this.statucAction == "prepeareDie")
+  	 {
+	   this.die();
+     }	 
+	 if (this.statucAction == "winner")
+	 {
+	   this.winnerUpdate();
+	 }
+   }
+   
+   this.enemyTarget = function(target)
+   {
+ 
+     this.enemy = target;
+     this.statucAction = "goToEnemy";
+   }
+
+   this.prepeareDie = function()
+   {
+      this.statucAction = "prepeareDie";
+	  this.countLife = 50; 
+   }
+   
+   this.walking = function()
+   {
+  //update main point
+       if (this.pointX<0 || this.pointX > gameW)
+       {
+	     this.spdPointX = this.spdPointX *(-1); 
+	   }	
+       this.pointX = this.pointX +  this.spdPointX; 
+    
+	   if (this.pointY<0 || this.pointY > gameH)
+       {
+	     this.spdPointY = this.spdPointY *(-1); 
+	   }		
+       this.pointY =  this.pointY +  this.spdPointY; 	
+	   this.updateElements();	
+	   
+	   if ( Math.random()*1000<1 && this.makeIskra == false )
+	  {
+	     this.makeIskra = true;
+	  }	     
+    }	
+	
+    this.goToEnemy = function()
+    {
+       if (!this.enemy)
+       {
+           this.statucAction = "walk";
+       }  
+       else
+      {       
+           
+         if (this.pointX<this.enemy.pointX)
+         {
+           this.spdPointX =  3;
+	     }
+         else 
+	     {
+ 	       this.spdPointX = -3;         
+	     }
+	     this.pointX = this.pointX + this.spdPointX;	   
+         if (this.pointY<this.enemy.pointY)
+         {
+	       this.spdPointY =  3;
+	     }
+         else 
+         {
+	       this.spdPointY = -3;   
+	     }	
+         this.pointY = this.pointY + this.spdPointY;  
+	   
+    	   this.updateElements();	
+	   
+	     if ( (Math.abs(this.pointX - this.enemy.pointX)<200) && (Math.abs(this.pointY - this.enemy.pointY)<200) )
+	     {
+	       this.statucAction = "attak";		 
+	     }	
+       }       
+	}
+
+    this.attack = function()
+    {
+	   this.enemy.countLife = this.enemy.countLife - 1;	 
+	   if (this.enemy.countLife < 0)
+	   {
+	     this.enemy.prepeareDie();
+		 this.statucAction = "walk";
+         this.enemy = "0";   
+         for (v=0; v<this.elements.length; v++)
+         {
+            this.elements[v].X0 = this.pointX;
+            this.elements[v].Y0 = this.pointY;             
+         }
+	   }	   
+	   
+       if (this.pointX<this.enemy.pointX)
+       {
+         this.spdPointX =  3;
+	   }
+       else 
+	   {
+ 	     this.spdPointX = -3;         
+	   }
+	   this.pointX = this.pointX + this.spdPointX;	   
+       if (this.pointY<this.enemy.pointY)
+       {
+	     this.spdPointY =  3;
+	   }
+       else 
+       {
+	     this.spdPointY = -3;   
+	   }	
+       this.pointY = this.pointY + this.spdPointY;  
+	   
+	   this.makeIskra = true;	   
+	   this.updateElements();	
+	   
+	}
+	
+	this.die = function()
+	{
+      	 this.spdPointX = 2;     
+	     this.spdPointY = 2;
+         this.dieTimer --;		 
+		 this.updateElements();
+		 if (this.dieTimer <0)
+		 {
+		   this.elements = [];
+	       this.life = false;
+		 } 
+	}
+	
+	this.winner = function()
+	{
+	  this.statucAction = "winner";
+	}
+	
+	this.winnerUpdate = function()
+  {
+       if (this.pointX<0 || this.pointX > gameW)
+       {
+	     this.spdPointX = this.spdPointX *(-1); 
+	   }	
+       this.pointX = this.pointX +  this.spdPointX; 
+    
+	   if (this.pointY<0 || this.pointY > gameH)
+       {
+	     this.spdPointY = this.spdPointY *(-1); 
+	   }		
+       this.pointY =  this.pointY +  this.spdPointY; 	
+	   this.updateElements();	
+	   
+	   if ( Math.random()*1000<1 && this.makeIskra == false )
+	  {
+	     this.makeIskra = true;
+	  }	
+	}
+	this.updateElements = function()
+    {	
+       // delete old elements
+       for (i=0; i< this.elements.length; i++) 
+	   {
+	       if (this.elements[i].life == false)
+	       {
+	           die = this.elements[i];
+		       this.elements.splice(i,1);
+		       die = null;
+		       i--;
+	        }
+	    }	
+        //update bezie		
+		if (this.statucAction == "attak")
+		{
+           for (i=0; i< this.elements.length; i++) 
+	       {
+	          this.elements[i].updatePoints(this.pointX, this.spdPointX, this.pointY, this.spdPointY, this.enemy.pointX, this.enemy.pointY );
+			  this.elements[i].attack = true;
+	       }           
+        }	
+
+		if (this.statucAction != "attak")
+		{
+           for (i=0; i< this.elements.length; i++) 
+	      {
+		      this.elements[i].attack = false;
+	          this.elements[i].updatePoints(this.pointX, this.spdPointX, this.pointY, this.spdPointY, 0, 0);
+	      }
+        }		
+	    if (this.statucAction != "winner")
+		{
+     	   if (this.circleRad<20 && this.circleMore == true )
+	       {
+	          this.circleRad = this.circleRad + 0.2;
+	       }
+	       if (this.circleRad >= 20)
+	       { 
+	         this.circleMore = false
+	       }
+	       if (this.circleRad >= 2 && this.circleMore == false)
+	       {
+	         this.circleRad = this.circleRad - 0.2;	   
+	       }
+	       if (this.circleRad <= 2 )
+	       {
+	          this.circleMore = true;  
+	       } 
+		}  
+           if (this.makeIskra == true)
+	       {
+	         this.createIskra(5);
+	       }
+
+        if (this.statucAction == "winner")
+		{
+		   this.circleMore = true;
+		   this.circleRad = this.circleRad + 0.2;   
+		}
+		
+	}	
+
+	    // create iskra
+    this.createIskra = function(q)
+      {	  
+	     this.iskraQuantity = q;
+		 
+		 for (cQ=0; cQ<this.iskraQuantity; cQ++)
+		 {
+            if ( this.makeIskra == true )	
+           {
+		  
+	           this.iskraFlash =  this.iskraFlash * (-1);
+	           this.makeIskraCount ++;
+	           for (nn = 0; nn<3; nn++)
+	           {
+	              isrk = new Iskra(this.elements[cQ].X0, this.elements[cQ].Y0); 
+	              this.elements.push(isrk);
+	           }		 
+            }
+	        if ( this.makeIskraCount >= 250)
+	       {
+	   	      this.makeIskra = false;
+	          this.makeIskraCount = 0 ;
+		      this.iskraFlash = -1;
+	       }
+		 }  
+	  }   
+}
+
+//constructor figura
+function fBezie(pX,pY)
+{
+   if(pX)
+   {
+     this.pointX = pX;
+   }
+   if(pY)
+   {
+     this.pointY = pY;
+   }
+   this.podclass = "bezie";
+   this.life = true;
+   this.attack = false;
+   this.tX = 0;
+   this.tY = 0;
+   
+   this.area = Math.floor(Math.random()*40); 
+   
+   this.X0 = Math.floor(Math.random()*this.area-this.area/2)+this.pointX;
+   this.spdX0 = Math.floor(Math.random()*10-5);
+   
+   this.Y0 = Math.floor(Math.random()*this.area-this.area/2) +this.pointY;
+   this.spdY0 = Math.floor(Math.random()*10-5);  
+   
+   this.X1 = Math.floor(Math.random()*this.area-this.area/2) +this.pointX;
+   this.spdX1 = Math.floor(Math.random()*6-3);  
+   
+   this.Y1 = Math.floor(Math.random()*this.area-this.area/2) +this.pointY; 
+   this.spdY1 = Math.floor(Math.random()*6-3);  
+   
+   this.X2 = Math.floor(Math.random()*this.area-this.area/2) +this.pointX;
+   this.spdX2 = Math.floor(Math.random()*6-3);  
+   
+   this.Y2 = Math.floor(Math.random()*this.area-this.area/2) +this.pointY;
+   this.spdY2 = Math.floor(Math.random()*6-3);
+   
+   this.X3 = Math.floor(Math.random()*this.area-this.area/2) +this.pointX;
+   this.spdX3 = Math.floor(Math.random()*10-5);
+   
+   this.Y3 = Math.floor(Math.random()*this.area-this.area/2) +this.pointY; 
+   this.spdY3 = Math.floor(Math.random()*10-5);  
+
+   this.updatePoints = function(mainPointX, mainSpdPointX, mainPointY, mainSpdPointY, targetX, targetY)
+   {
+     this.pointX = mainPointX;
+     this.pointY = mainPointY;
+     this.tX = targetX;
+     this.tY = targetY; 	 
+     
+    if (this.tX == 0 && this.tY == 0 )
+     {	 
+         if (Math.abs(this.X0 - this.pointX) > this.area)
+	     { 
+	     this.spdX0 = this.spdX0 * (-1);
+	     }
+         this.X0 = this.X0  + this.spdX0 + mainSpdPointX;
+	 
+         if (Math.abs(this.Y0 - this.pointY) > this.area)
+	     { 
+	     this.spdY0 = this.spdY0 * (-1);
+	     }	 
+         this.Y0 = this.Y0  + this.spdY0 + mainSpdPointY;	
+    }
+    else
+    {
+	    this.X0 = this.tX + Math.random()*3;	 
+	    this.Y0 = this.tY + Math.random()*3;	
+    }
+	 
+	 if (Math.abs(this.X1 - this.pointX) > this.area)
+	 { 
+	   this.spdX1= this.spdX1 * (-1);
+	 }
+     this.X1 = this.X1  + this.spdX1 + mainSpdPointX;
+	 
+	 if (Math.abs(this.Y1 - this.pointY) > this.area)
+	 { 
+	   this.spdY1= this.spdY1 * (-1);
+	 }	 
+     this.Y1 = this.Y1  + this.spdY1 + mainSpdPointY;
+
+	 if (Math.abs(this.X2 - this.pointX) > this.area)
+	 { 
+	   this.spdX2= this.spdX2 * (-1);
+	 }		 
+     this.X2 = this.X2  + this.spdX2 + mainSpdPointX;
+	 
+	 if (Math.abs(this.Y2 - this.pointY) > this.area)
+	 { 
+	   this.spdY2= this.spdY2 * (-1);
+	 }		 
+     this.Y2 = this.Y2  + this.spdY2 + mainSpdPointY;
+
+	 if (Math.abs(this.X3 - this.pointX) > this.area)
+	 { 
+	   this.spdX3= this.spdX3 * (-1);
+	 }	 
+     this.X3 = this.X3  + this.spdX3 + mainSpdPointX;
+	 
+	 if (Math.abs(this.Y3 - this.pointY) > this.area)
+	 { 
+	   this.spdY3= this.spdY3 * (-1);
+	 }		 
+     this.Y3 = this.Y3  + this.spdY3 + mainSpdPointY; 
+   }  
+   
+}
+
+function Iskra(pX, pY)
+{
+  this.podclass = "iskra";
+  this.X0 = pX; 
+  this.spdX0 = Math.random()*25-12;  
+  this.Y0 = pY;
+  this.spdY0 = Math.random()*25-12;  
+  this.avatar = ".";
+  this.count = 0;
+  this.life = true;
+  this.updatePoints = function(aa,bb,cc,dd)
+  {
+    this.count ++;
+    this.X0 = this.X0 + this.spdX0;
+    this.Y0 = this.Y0 + this.spdY0;	
+	if (this.count >= 3)
+	{
+	  this.life = false;
+	}
+  }
+}
+
+function fonBezie()
+{ 
+  this.X0 = 0;
+  this.Y0 = Math.floor(Math.random()*gameH);
+  this.spdY0 = Math.random()*3-1.5;
+  this.X1 = Math.floor(Math.random()*gameW/3);
+  this.spdX1 = Math.random()*3-1.5; 
+  this.Y1 = Math.floor(Math.random()*500)*(-1);
+  this.spdY1 = Math.random()*3-1.5;   
+  this.X2 = Math.floor(Math.random()*gameW/3 + gameW/2);
+  this.spdX2 = Math.random()*3-1.5;    
+  this.Y2 = Math.floor(Math.random()*500+gameH);
+  this.spdY2 = Math.random()*3-1.5;   
+  this.X3 = gameW;
+  this.Y3 = Math.floor(Math.random()*gameH);
+  this.spdY3= Math.random()*3-1.5;  
+  this.timer = 0;  
+  this.updatePoints = function()
+  {
+     this.Y0 = this.Y0 + this.spdY0;
+     this.X1 = this.X1 + this.spdX1 ;
+     this.Y1 =  this.Y1 + this.spdY1 ;
+     this.X2 = this.X2+ this.spdX2 ;   
+     this.Y2 =  this.Y2+  this.spdY2;
+     this.Y3 =  this.Y3+this.spdY3 ;
+	 this.timer ++;
+	 if (this.timer>1000)
+	 {
+	   this.spdY0 = -  this.spdY0;
+	   this.spdX1 = -  this.spdX1; 
+	   this.spdY1 = -  this.spdY1;
+	   this.spdX2 = -  this.spdX2;
+	   this.spdY2 = - this.spdY2; 
+	   this.spdY3 = -  this.spdY3;
+	   this.timer = 0;
+	 }
+  }
+}
+
+function updateObjects()
+{
+    //delete objects
+    for (n2 = 0; n2<unitsB.length; n2 ++)
+	{
+	   if (unitsB[n2].life == false)
+	   {
+	      aaa = unitsB[n2];
+		  unitsB.splice(n2, 1);
+		  aaa = null;
+		  n2--;
+	   }	
+	}
+    
+   if (unitsB.length < 20 && Math.random()*10< 1 )
+   {
+        atom1 = new Molecula(); 
+     	unitsB.push(atom1);	   
+   }
+
+	if (unitsB.length == 1 )
+	{
+	  unitsB[0].winner();
+	}
+	for ( d=0; d<unitsB.length; d++ )
+	{
+	   if (Math.random()*70<1 && unitsB[d].statucAction == "walk")
+	   {   
+	     for (k=0; k<unitsB.length; k++)
+		 {
+            if(Math.random()*70<1)
+            {    
+		       if ( unitsB[k].statucAction == "walk" && k!=d )
+               {  
+			      unitsB[d].enemyTarget(unitsB[k]);
+			   }
+            }           
+		 }	   
+	   }
+	   unitsB[d].updatePoints(); 
+	}
+	
+	for ( n1=0; n1< unitsFon.length; n1++ )
+	{
+	  unitsFon[n1].updatePoints();
+	}
+    
+}
+
+
+function drawFrame()
+{
+
+    context.clearRect(0, 0, canvas.width, canvas.height);
+	for (ii=0; ii<unitsB.length; ii++)
+	{
+       context.beginPath();
+	   context.strokeStyle = "white";
+	   atom = unitsB[ii];
+	   if (atom.statucAction != "prepeareDie")
+	   {
+	      context.moveTo( atom.pointX + atom.circleRad, atom.pointY);
+          context.arc( atom.pointX, atom.pointY, atom.circleRad, 0, 2*Math.PI, true);		
+	      context.stroke() ;
+       }	   
+       if (atom.iskraFlash == 1 )
+       { 
+	     for (cQ = 0; cQ < atom.iskraQuantity; cQ++ )
+		 {
+	        context.beginPath();
+		    context.strokeStyle = "yellow";
+		    context.fillStyle = "yellow";
+		    context.moveTo( atom.elements[cQ].X0, atom.elements[cQ].Y0);
+            context.arc( atom.elements[cQ].X0, atom.elements[cQ].Y0, 2, 0, 2*Math.PI, true);	
+		    context.fill();  		 
+	        context.stroke() ;	
+          }			
+	   }	   
+	  for (i=0; i< atom.elements.length; i++)
+	  {
+	     if (atom.elements[i].podclass == "bezie")  
+		 {
+	        context.beginPath();
+            if (atom.statucAction == "prepeareDie")
+            {
+			   context.strokeStyle = 'rgba(0,' + Math.floor(255-10*i) + ',' + Math.floor(255-2*i*ii) + ', ' + atom.dieTimer*0.02 + ')';
+			} else
+            {			
+              context.strokeStyle = 'rgb(0,' + Math.floor(255-10*i) + ',' + Math.floor(255-2*i*ii) + ')';
+            }
+			context.moveTo( atom.elements[i].X0 , atom.elements[i].Y0);
+            context.bezierCurveTo(atom.elements[i].X1, atom.elements[i].Y1, atom.elements[i].X2,  atom.elements[i].Y2, atom.elements[i].X3, atom.elements[i].Y3 );	
+	        context.stroke();
+		 }
+	     if (atom.elements[i].podclass == "iskra")  
+		 {
+	        context.beginPath();	
+            context.strokeStyle = "yellow";
+            context.moveTo( atom.elements[i].X0 , atom.elements[i].Y0);
+            context.lineTo(atom.elements[i].X0, atom.elements[i].Y0+2);	
+	        context.stroke();
+		 }		 
+	  }
+	}
+	for (i1 = 0; i1 < unitsFon.length; i1++)
+	{
+	
+       context.beginPath();	
+       context.strokeStyle = 'rgb(40,40,' + Math.floor(255-35*i1) + ')';	   
+       context.moveTo(unitsFon[i1].X0, unitsFon[i1].Y0);	
+       context.bezierCurveTo(unitsFon[i1].X1, unitsFon[i1].Y1, unitsFon[i1].X2, unitsFon[i1].Y2, unitsFon[i1].X3, unitsFon[i1].Y3);	
+       context.stroke() ;
+    } 
+    updateObjects();
+	setTimeout("drawFrame()", 40);
+}
+</script>
+    <canvas height="1200" width="1904" id="canvas"></canvas>
+</body></html>

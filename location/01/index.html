@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<style>
+			body {
+				margin: 0;
+				overflow: hidden;
+				background-color:#C0C0C0;				
+			}
+			
+			#info {
+			    padding-top:30px; 
+			    font-size:30px;
+			    color: black;
+				position: absolute;
+				top: 0px;
+				width: 100%;
+				text-align:center;
+			}
+			
+			a {
+			     font-size:25px;
+	             color: black;	
+                 border: 2px solid #000; 
+                 padding: 5px;
+                 text-decoration: none;	
+                 padding: 5px 15px 5px 15px;				 
+			}
+			
+			a:hover {
+	             color: black;	
+                 border: 2px solid #000; 			 
+                 text-decoration: none;	
+                 background-color: white;					 
+			}			
+			
+		</style>
+	</head>
+	<body>
+		
+		<div id="info"></div>	
+	
+		<script src="three.js"></script>
+		<script src="FirstPersonControls.js"></script>
+        <script src="MTLLoader.js"></script>
+        <script src="OBJMTLLoader.js"></script>		
+		<script>
+
+			// GLOBALS ======================================================
+
+			var camera, scene, renderer, player, clock;
+			var INV_MAX_FPS = 0.01, frameDelta = 0;
+			
+           var map = [1,"x",1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+           1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+           1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,
+           1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,
+		   1,0,1,0,1,1,0,1,1,1,1,1,1,1,0,1,0,1,
+		   1,0,1,0,1,0,0,1,0,0,0,0,0,0,0,1,0,1,
+		   1,0,1,0,1,1,1,1,0,1,1,1,1,1,1,1,0,1,
+		   1,0,1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,1,
+		   1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1,0,1,
+		   1,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,1,
+		   1,0,1,0,1,1,1,1,1,1,0,1,0,1,1,1,1,1,
+		   1,0,1,1,1,0,0,0,0,0,0,1,0,1,0,0,0,1,
+		   1,0,0,0,1,0,1,1,1,1,1,1,0,1,1,1,0,1,
+		   1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,
+		   1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,
+		   1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,1,
+		   1,0,1,1,1,0,1,0,1,1,1,1,1,0,0,1,0,1,
+		   1,0,0,0,0,0,1,0,1,0,0,0,1,0,0,1,0,1,
+		   1,0,1,1,1,1,1,0,1,0,1,1,1,0,1,1,0,1,
+		   1,0,0,0,"s","e",0,0,1,0,0,0,0,0,0,0,0,1,
+		   1,1,1,1,2,"x",2,1,1,1,1,1,1,1,1,1,1,1];
+           var lab = [];
+           var dist = 5;			
+
+           var bumpCube;
+		   	   
+		   var info1 = " Бессмысленно осмысливать смысл </br>" +
+						"неосмысленными </br>" +
+						"мыслями.";
+		
+		   var info2 = " Важен не только конечный пункт,</br> но и сам путь. ";
+		   var infoEnd = " <a href=\"http://js.otrisovano.ru/location/02\"> Следующий шаг </a> ";
+				   				   
+		   var  topMessage = document.getElementById("info");
+           topMessage.innerHTML = info1; 	
+	       setTimeout("deleteText()", 12000);		
+          
+           function deleteText()
+           {
+              topMessage = document.getElementById("info");
+              topMessage.innerHTML = ""; 				 
+		   }
+
+           function deleteText2()
+           {
+		   	  player.mouseDragOn = true;
+              topMessage = document.getElementById("info");
+              topMessage.innerHTML = infoEnd; 		   
+		   }		   
+  	   
+	   
+
+			// SETUP ========================================================
+
+			function setup() {
+				document.body.style.backgroundColor = '#C0C0C0';
+				setupThreeJS();
+				setupWorld();
+
+				requestAnimationFrame(function animate() {
+					draw();
+
+					frameDelta += clock.getDelta();
+					while (frameDelta >= INV_MAX_FPS) {
+						update(INV_MAX_FPS);
+						frameDelta -= INV_MAX_FPS;
+					}
+
+					requestAnimationFrame( animate );
+				});
+			}
+
+			function setupThreeJS() 
+			{
+				scene = new THREE.Scene();
+				scene.fog = new THREE.FogExp2(0x9db3b5, 0.02);
+
+				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera.position.x = dist*5+dist/2;				
+				camera.position.y = 4;
+				camera.position.z = -dist +dist/2 ;
+				camera.rotation.x = 0;
+
+                //camera.lookAt(scene.position);				
+
+				renderer = new THREE.WebGLRenderer({antialias: true});
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setClearColorHex('#C0C0C0');					
+				renderer.shadowMapEnabled = true;
+				document.body.appendChild( renderer.domElement );
+
+               var ambientLight = new THREE.AmbientLight(0x332222);
+               ambientLight.name = 'ambientLight';
+               scene.add(ambientLight);
+				
+                var dirLight = new THREE.DirectionalLight(0xE2F7F8);
+                dirLight.position.set(20, 20, 20);
+                scene.add(dirLight);		
+
+		   
+
+				clock = new THREE.Clock();
+				player = new THREE.FirstPersonControls(camera);
+				player.movementSpeed = 100;
+				player.lookSpeed = 0.1;
+			}
+
+			function setupWorld()
+			{
+
+				
+             // create a bumpcube and add to scene
+                var cubeGeometry = new THREE.BoxGeometry(dist, dist, dist);
+                var cubeBumpMaterial = new THREE.MeshPhongMaterial();
+                cubeBumpMaterial.map = THREE.ImageUtils.loadTexture("Brick-2399.jpg");
+                cubeBumpMaterial.bumpMap = THREE.ImageUtils.loadTexture("Brick-2399-bump-map.jpg");
+
+		        var num = 0; 
+	            var  placeX=0;
+		        var  placeY=0; 
+		        for (i = 0; i<map.length; i++ )
+		        { 		
+                    for (ii=0; ii<18; ii++)
+                    {	
+                      if (map[num] == 1)
+                      {			   
+                         bumpCube = new THREE.Mesh(cubeGeometry, cubeBumpMaterial);
+                         bumpCube.name = 'bumpCube';
+                         bumpCube.position.x = placeX*dist+dist/2;
+                         bumpCube.position.z = placeY*dist*(-1)+dist/2;
+			             bumpCube.position.y = 0; 
+                         scene.add(bumpCube);
+			             lab.push(bumpCube);
+			           }
+			           if (map[num] == 0)
+			           {
+                         bumpCube = new THREE.Mesh(cubeGeometry, cubeBumpMaterial);
+                         bumpCube.name = 'bumpCube';
+                         bumpCube.position.x = placeX*dist+dist/2;
+                         bumpCube.position.z = placeY*dist*(-1)+dist/2;
+			             bumpCube.position.y = -dist; 
+                         scene.add(bumpCube);
+			             //  lab.push(bumpCube);			   
+			           }
+			           if (map[num] == "x")
+			           {
+                         bumpCube = new THREE.Mesh(cubeGeometry, cubeBumpMaterial);
+                         bumpCube.name = 'bumpCube';
+                         bumpCube.position.x = placeX*dist+dist/2;
+                         bumpCube.position.z = placeY*dist*(-1)+dist/2;
+			             bumpCube.position.y = -dist; 
+                         scene.add(bumpCube);
+			             //  lab.push(bumpCube);			   
+			           }					   
+			           if (map[num] == "e")
+			           {
+                         bumpCube = new THREE.Mesh(cubeGeometry, cubeBumpMaterial);
+                         bumpCube.name = 'bumpCube';
+                         bumpCube.position.x = placeX*dist+dist/2;
+                         bumpCube.position.z = placeY*dist*(-1)+dist/2;
+			             bumpCube.position.y = -dist; 
+                         scene.add(bumpCube);
+			             //  lab.push(bumpCube);			   
+			           }					   
+			           if (map[num] == 2)
+			           {
+                         bumpCube = new THREE.Mesh(cubeGeometry, cubeBumpMaterial);
+                         bumpCube.name = 'bumpCube';
+                         bumpCube.position.x = placeX*dist+dist/2;;
+                         bumpCube.position.z = placeY*dist*(-1)+dist/2;;
+			             bumpCube.position.y = 0; 
+                         scene.add(bumpCube);
+			             lab.push(bumpCube);
+                         bumpCube1 = new THREE.Mesh(cubeGeometry, cubeBumpMaterial);
+                         bumpCube1.name = 'bumpCube';
+                         bumpCube1.position.x = placeX*dist+dist/2;;
+                         bumpCube1.position.z = placeY*dist*(-1)+dist/2;;
+			             bumpCube1.position.y = dist; 
+                         scene.add(bumpCube1);				  
+			            //  lab.push(bumpCube);			   
+			            }	
+			           if (map[num] == "s")
+			           {
+                         bumpCube = new THREE.Mesh(cubeGeometry, cubeBumpMaterial);
+                         bumpCube.name = 'bumpCube';
+                         bumpCube.position.x = placeX*dist+dist/2;
+                         bumpCube.position.z = placeY*dist*(-1)+dist/2;
+			             bumpCube.position.y = 0; 
+                         scene.add(bumpCube);
+			           //  lab.push(bumpCube);
+        
+		                 var loader = new THREE.OBJMTLLoader();
+                         loader.load("1.obj", "1.mtl", function (obj) 
+						   {
+                             //obj.translateY(-3);
+                             obj.name = 'lego';
+                             obj.position.x = 6*dist-dist-0.5;	
+                             obj.position.z = (-1)*21*dist+dist+dist+dist/2;
+			                 obj.position.y = 2.5;
+                             obj.rotation.y = 1.5;							 
+                             scene.add(obj);
+                           });			  
+			            //  lab.push(bumpCube);			   
+			            }							
+			         num++;
+			         placeX++;
+		    	    } 
+                    placeX=0;
+                    placeY++; 				
+			   }
+			}   
+
+			
+			// DRAW =========================================================
+
+			function draw() {
+				renderer.render( scene, camera );
+			}
+
+			
+			// UPDATE =======================================================
+
+			function update(delta) {
+			   // collision
+			   mapPosX = Math.floor(player.target.x/dist);
+			   mapPosZ = Math.floor(player.target.z/dist)*(-1);
+			   point = mapPosZ * 18 + mapPosX;
+			   //alert( point );			   
+			   switch ( map[point] ) 
+			   {
+			     case 1: 
+				 case 2:
+				 case "x":	
+				 case "s":				 
+                    player.moveForward = false;									  
+				    break;
+				 case 0:				 
+                    break;  
+				 case "e":
+		                 topMessage = document.getElementById("info");
+                         topMessage.innerHTML = info2; 	
+	                     setTimeout("deleteText2()", 6000);					 
+                   break; 				   
+			   }
+			   		
+				player.update(delta);
+			}
+
+			// RUN ==========================================================
+
+			setup();
+
+		</script>
+		<div id = "message"> </div>
+	</body>
+</html>

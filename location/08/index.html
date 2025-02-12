@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<style>
+			body {
+				margin: 0;
+				overflow: hidden;
+				background-color:0x9db3b5;				
+			}
+			
+			#bullets {
+			    color: black;
+				padding: 10px;
+				margin: 20px;
+				margin-rigth:50px;
+				text-align:left;
+				font-size: 35px;
+			    border: 2px solid black;
+ 				position: absolute;
+                width: 100%;
+				height: 35px;       				
+			}
+
+		    #speeds {
+			    color: white;
+				padding: 10px;
+				margin: 20px;
+				margin-rigth:50px;
+				text-align:left;
+				font-size: 0.01px;
+ 				position: fixed;
+                left: 0; bottom: 0;				
+                width: 100%;
+				height: 35px;				
+			}
+			
+		    #speeds img {
+				height: 40px;
+				width: 40px;				
+			}			
+			
+			
+			#info {
+			    color: black;
+				position: absolute;
+				top: 80px;
+				font-size: 40px;				
+				width: 100%;
+				padding: 5px;
+				text-align:center;
+			}
+			
+			.i {
+			    color: white;
+			}
+			
+
+			a {
+			     margin: 10px;
+			     font-size: 30px;
+	             color: white;	
+                 border: 2px solid white; 
+                 padding: 5px;
+                 text-decoration: none;	
+                 padding: 5px 15px 5px 15px;				 
+			}
+			
+			a:hover {
+	             color:white;	
+                 border: 2px solid white; 			 
+                 text-decoration: none;	
+                 background-color: #cda434;					 
+			}				
+						
+			
+		</style>
+	</head>
+	<body>
+        <div id = "bullets"> </div>	
+        <div id = "speeds"> </div>			
+		<div id="info"></div>	
+	
+		<script src="three.js"></script>
+		<script src="FirstPersonControls.js"></script>
+        <script src="MTLLoader.js"></script>
+        <script src="OBJMTLLoader.js"></script>		
+		<script>
+
+			// GLOBALS ======================================================
+
+		   var info1 = " Take 30 black hearts."; 
+					   
+		   var info2 = " end";
+		   
+		   var endLinks =  " <a href=\"http://js.otrisovano.ru/location/07\"> < &nbsp;&nbsp; Previous step </a> " +
+                           " <a href=\"http://js.otrisovano.ru/location/09\">   Next step &nbsp;&nbsp; > </a>" ;	
+	
+           windowH = document.documentElement.clientHeight;
+           windowW = document.documentElement.clientWidth;	
+		   
+		   var  topMessage = document.getElementById("info");
+           topMessage.innerHTML = info1; 
+           topMessage.style.top =  windowH/3+"px";	
+
+	       setTimeout("deleteText()", 6000);
+           function deleteText()
+           {
+               topMessage.innerHTML = ""; 				 
+		   }
+		   
+           function endChangeText()
+           {
+		       gameStatus = "-";
+               topMessage.innerHTML = endLinks; 				 
+		   }		   
+		   
+		   
+           var showBullets = document.getElementById("bullets");
+           showBullets.style.width =  windowW-60+"px";		   
+           showBullets.innerHTML = "";	
+
+           var showSpeeds = document.getElementById("speeds");
+           showSpeeds.style.width =  windowW-60+"px";
+		   
+ 		   var arrStrokeSpd= [];		   
+           for (mn = 0; mn<25; mn++)
+           {
+		      arrStrokeSpd.push("<img src=\"bull.png\">");
+		   } 		   
+		   showSpeeds.innerHTML = arrStrokeSpd;
+		   
+			var camera, scene, renderer, player, clock;
+			var INV_MAX_FPS = 0.01, frameDelta = 0;
+			var colorEnv = 0xe2e9d6;
+		    colorEnv = 0xffffff;
+			var colorEnvAdd = 0x000000;				
+			var colorUnit = 0x737373;	
+		
+            var particleGroup, particleAttributes;	
+            var bullGroups;
+			
+			var statusEnv = "white";
+			var chanceEnv = false;
+			var timerPlayer = 0;
+			var scores = 0;
+			var oldScores = 0;
+            var arrColClouds = [];
+			var arrCollCloudsSpd = [];
+
+			var gameStatus = "play";
+			
+	       // Constructor Unit =============================================
+           
+           CONSTR_Unit = function (posX,posY,posZ)
+		   {
+			  this.posX = posX;
+			  this.posY = posY;
+			  this.posZ = posZ;
+              this.status = "create";		   
+			  this.number = CONSTR_Unit.COUNT; 
+
+              this.timerAction = 0;			  
+		   
+		      var dummyG =  new THREE.PlaneGeometry(0.01, 0.01, 1,1);
+	          var mat1 = new THREE.MeshBasicMaterial();
+			  this.dummy = new THREE.Mesh(dummyG, mat1);
+			  this.dummy.position.set(this.posX, this.posY, this.posZ);			  
+			 			  
+			  //mask
+	          var sphereGeometry = new THREE.PlaneGeometry(25, 25, 1,1);
+              var mat = new THREE.MeshBasicMaterial();
+              mat.map = new THREE.ImageUtils.loadTexture("mask.png");
+              mat.shading = THREE.SmoothShading;
+              mat.transparent = true;
+              mat.depthWrite = false;
+              mat.color = new THREE.Color(colorEnv);
+              //mat.color = new THREE.Color(0xffff00);			 
+              this.unit = new THREE.Mesh(sphereGeometry, mat);
+			  this.unit.position.set(4, 0, 0);
+              this.dummy.add(this.unit);
+		
+		      //clouds	
+              var creatrePositionOffset = 5;
+			  var timeCreate = 200;
+              var speedCreate = creatrePositionOffset / timeCreate;
+               			   
+		      var cloudGeom = new THREE.PlaneGeometry(10,10,1,1);
+              var cloudMaterial = new THREE.MeshBasicMaterial( {color: colorUnit} );
+              cloudMaterial.map = new THREE.ImageUtils.loadTexture("smk.png");	
+              cloudMaterial.transparent = true;
+              cloudMaterial.shading = THREE.SmoothShading;
+              cloudMaterial.depthWrite = false;		
+              this.arrFog = [];	
+			  
+              var cloud = new THREE.Mesh(cloudGeom, cloudMaterial);
+              for (as = 0; as< 5; as++)
+		      {
+		         f = cloud.clone();
+	             f.position.set( Math.random()*5-2.5 + creatrePositionOffset, -8+as*4,   -5);
+			     f.rotation.z = Math.random()*2*Math.PI;
+		         this.arrFog.push(f);
+		         this.dummy.add(f);				 
+		      }	
+			  
+	          var crateTexture = THREE.ImageUtils.loadTexture( 'smk.png' );			  
+              var crateMaterial = new THREE.SpriteMaterial( { map: crateTexture, useScreenCoordinates: false, color: colorUnit, rotation: Math.random()*Math.PI*2} );
+	          var sprite2 = new THREE.Sprite( crateMaterial );
+	          sprite2.scale.set( 35, 35, 1.0 ); // imageWidth, imageHeight
+	          this.dummy.add( sprite2 );			  
+			  
+			  //particles
+              var pointTexture = THREE.ImageUtils.loadTexture( 'pr.png' );
+              var particleGroup = new THREE.Object3D();
+	          var particleAttributes = { startPosition: [], randomness: [] };
+	
+	          var totalParticles = 20;
+	          var radiusRange = 5;
+	          for( var i = 0; i < totalParticles; i++ ) 
+	          {
+	                var pointMat = new THREE.SpriteMaterial( { map: pointTexture, useScreenCoordinates: false, color: colorUnit } );				
+		            var sprite = new THREE.Sprite( pointMat );
+		            sprite.scale.set( 0.6, 0.6, 0.6); // imageWidth, imageHeight
+		            sprite.position.set( 0, 0, 0);
+		            sprite.position.setLength( radiusRange * (Math.random() * 0.1 + 0.9) );
+		            sprite.material.opacity = 1; // translucent particles
+		            //sprite.material.blending = THREE.AdditiveBlending; // "glowing" particles
+		            particleGroup.add( sprite );
+		            // add variable qualities to arrays, if they need to be accessed later
+		            particleAttributes.startPosition.push( sprite.position.clone() );
+		            particleAttributes.randomness.push( [Math.random()*0.01, Math.random()*0.01, Math.random()*0.01] );
+	           }
+	           particleGroup.position.y = 0;
+	           particleGroup.position.x = 0;				
+	           this.dummy.add( particleGroup );	
+	           scene.add(this.dummy);
+
+               l = new ConstrLaser(this.number); 				 
+	  
+		       CONSTR_Unit.ARR_UNITS.push(this);	
+		       CONSTR_Unit.COUNT ++;				  
+              
+			  // All Units update
+              CONSTR_Unit.update = function()
+              {
+			    for ( ii = 0; ii< CONSTR_Unit.ARR_UNITS.length; ii ++)
+				{	   
+			       CONSTR_Unit.ARR_UNITS[ii].update();
+                }				 
+			  }
+              
+			  // current unit Update
+              this.update = function()
+              {
+                if (this.status == "create")
+                {				
+				   if ( timeCreate > 0 )
+				   {
+				      if ( timeCreate == 200 )
+                      {
+				        sprite2.material.opacity = 0;							
+					  }					  
+				   
+				      for (var xc = 0; xc < this.arrFog.length; xc ++ )
+					  {
+					     this.arrFog[xc].position.x -= speedCreate; 
+						 if (this.arrFog[xc].material.opacity <1)
+						 {
+	                        this.arrFog[xc].material.opacity += 0.01;					    
+						 }
+					  }
+					  
+	                  for ( var c = 0; c < particleGroup.children.length; c ++ ) 
+	                 {
+	             	     var sprite = particleGroup.children[ c ];
+						 if (sprite.material.opacity < 1)
+						 {
+	                       sprite.material.opacity += 0.005;
+                         }						   
+				         particleAttributes.startPosition[c].x += particleAttributes.randomness[c][0];
+				         particleAttributes.startPosition[c].y += particleAttributes.randomness[c][1];
+				         particleAttributes.startPosition[c].z += particleAttributes.randomness[c][2];						  
+		                 sprite.position.x = Math.sin(particleAttributes.startPosition[c].x)*4;  
+		                 sprite.position.y = Math.sin(particleAttributes.startPosition[c].y)*10; 
+		                 sprite.position.z = Math.sin(particleAttributes.startPosition[c].z)*4; 	
+             	     }			
+			   	      particleGroup.rotation.y += 0.01;					  			  
+					  timeCreate --;
+					  if  (	 sprite2.material.opacity < 1 )
+					  {
+				           sprite2.material.opacity += 0.01	
+                      }						  			  
+				      this.dummy.lookAt(camera.position);							  
+				   }			   
+				   
+				   if ( timeCreate == 0 )
+				   {
+				      this.status = "stay";
+                   } 					  
+				}			  
+			  
+			    if(this.status == "stay")
+                {
+
+                    if (  (Math.abs(this.dummy.position.x-camera.position.x)<15) && (Math.abs(this.dummy.position.z-camera.position.z)<15) )
+                    {
+					    scores++;
+						//alert(scores);
+						this.status = "remove"; 
+					} 
+					
+                   this.timerAction ++;
+
+                   if (this.timerAction == 1)
+                   {
+				      for ( gh=0; gh < ConstrLaser.ARR_LASERS.length; gh++ )
+					  {
+					      if ( ConstrLaser.ARR_LASERS[gh].number == this.number )
+						  {
+						     ConstrLaser.ARR_LASERS[gh].launch(this.dummy.position.x, this.dummy.position.y, this.dummy.position.z);
+							 
+							 if (  player.movementSpeed > 1)
+							 {
+							    player.movementSpeed -= 2;
+				                arrStrokeSpd.length =  arrStrokeSpd.length -1; 
+                                showSpeeds.innerHTML = arrStrokeSpd;							
+						   								
+						     }		
+						  }
+					  }
+				   } 
+				   
+				   if (this.timerAction == 300)
+				   {
+				     this.timerAction = 0;
+				     this.status = "remove";
+				   }
+				   
+			       //fog
+				   for ( ic = 0; ic < this.arrFog.length; ic ++)
+				   {
+  				        this.arrFog[ic].rotation.z += 0.003; 					   
+			   	   }	
+				   //sprite
+				   sprite2.material.rotation += 0.001; 
+				   sprite2.material.opacity = 1;
+				   
+                   //particies 
+	               for ( var c = 0; c < particleGroup.children.length; c ++ ) 
+	               {
+	             	   var sprite = particleGroup.children[ c ];
+				       particleAttributes.startPosition[c].x += particleAttributes.randomness[c][0];
+				       particleAttributes.startPosition[c].y += particleAttributes.randomness[c][1];
+				       particleAttributes.startPosition[c].z += particleAttributes.randomness[c][2];						  
+		               sprite.position.x = Math.sin(particleAttributes.startPosition[c].x)*4;  
+		               sprite.position.y = Math.sin(particleAttributes.startPosition[c].y)*10; 
+		               sprite.position.z = Math.sin(particleAttributes.startPosition[c].z)*4; 	
+             	   }			
+			   	   particleGroup.rotation.y += 0.01;				 
+				   this.dummy.lookAt(camera.position);	  				   
+			    }
+				
+				if (this.status == "remove")
+				{
+				    if (timeCreate < 250)
+                    {					
+                       for (at = 0; at< this.arrFog.length; at++)
+		               {
+                          this.arrFog[at].position.x += speedCreate;
+                          if (timeCreate > 150)
+                          {
+						     if (this.arrFog[at].material.opacity > 0 )
+							 {
+							   this.arrFog[at].material.opacity -= 0.01;
+							 }
+						  } 						  
+		               }
+					   for ( ag=0; ag < particleGroup.children.length; ag ++ )
+					   {
+	             	      sprite = particleGroup.children[ ag ];
+                          if ( sprite.material.opacity > 0)
+                          { 						  
+	                        sprite.material.opacity -= 0.01;
+                          } 							
+				          particleAttributes.startPosition[ag ].x += particleAttributes.randomness[ag ][0];
+				          particleAttributes.startPosition[ag ].y += particleAttributes.randomness[ag ][1];
+				          particleAttributes.startPosition[ag ].z += particleAttributes.randomness[ag ][2];						  
+		                  sprite.position.x = Math.sin(particleAttributes.startPosition[ag ].x)*4;  
+		                  sprite.position.y = Math.sin(particleAttributes.startPosition[ag ].y)*10; 
+		                  sprite.position.z = Math.sin(particleAttributes.startPosition[ag ].z)*4; 							  
+					   }			   
+					   timeCreate ++;
+				       sprite2.material.opacity -= 0.01;						   
+                    }	
+                    if (timeCreate == 250)
+                    {
+				       //this.dummy.position.set(100000,10000,10000);
+				       this.status = "removed";					
+					}						
+				}
+				
+				if (this.status == "removed")
+				{
+				   if (Math.random()*100<1)
+				   {
+				      this.status = "create";
+                       pos = Math.random()-1*30;					  
+                       this.dummy.position.set( Math.sin( pos * Math.PI * 2)*80 + Math.random()*30, 0, Math.cos(pos * Math.PI * 2)*80); 					  
+				   }
+				}				
+				
+				
+		      }
+  
+           }  
+
+           //Constructor Laser;
+
+           ConstrLaser = function(num)
+           {
+		        ConstrLaser.ARR_LASERS;
+				
+		        this.number = num; 
+		        this.status = "none"
+                this.targetStatus = "none";  
+				//Laser
+				
+			    var laserTimer = 0;
+	            var countPoints = 10;
+			    var countCurves = 10;
+						
+				var sourceXL, sourceYL, sourceZL;			
+				var targetXL, targetYL, targetYL;
+				
+				var sourceXR, sourceYR, sourceZR;			
+				var targetXR, targetYR, targetYR;				
+							     
+         	    var materialLaser = new THREE.LineBasicMaterial({ color: 0x000000});
+
+                this.arrPointsL = [];		
+			    this.arrPointsL.push( new THREE.Vector3(-3, -3, 0.5) );				
+		        for ( ix = 0; ix < countPoints; ix ++ )
+			    {
+			         this.arrPointsL.push( new THREE.Vector3(-2-(targetXL*ix/countPoints), (-2)-(10*ix/countPoints)+Math.random()*7-3.5, 0.5 ));	
+			    }
+			    this.arrPointsL.push( new THREE.Vector3(-15, -12, 0.5) );					 	  
+			    this.splineL = new THREE.SplineCurve3(this.arrPointsL);		  
+                this.geometryLaserL = new THREE.Geometry();
+                this.geometryLaserL.vertices = this.splineL.getPoints(countCurves);
+                this.laserL = new THREE.Line(this.geometryLaserL, materialLaser);
+			
+                this.arrPointsR = [];		
+			    this.arrPointsR.push( new THREE.Vector3(-3, -3, 0.5) );				
+		        for ( ix = 0; ix < countPoints; ix ++ )
+			    {
+			         this.arrPointsR.push( new THREE.Vector3(-2-(targetXL*ix/countPoints), (-2)-(10*ix/countPoints)+Math.random()*7-3.5, 0.5 ));	
+			    }
+			    this.arrPointsR.push( new THREE.Vector3(-15, -12, 0.5) );					 	  
+			    this.splineR = new THREE.SplineCurve3(this.arrPointsR);		  
+                this.geometryLaserR = new THREE.Geometry();
+                this.geometryLaserR.vertices = this.splineR.getPoints(countCurves);
+                this.laserR = new THREE.Line(this.geometryLaserR, materialLaser);
+			
+				//Laser particies
+                 var bullText = THREE.ImageUtils.loadTexture( 'flash.png' );
+                 this.bullGroupL = new THREE.Object3D();
+                 this.bullGroupR = new THREE.Object3D();				 
+	             var totalFlash = 5;
+	             for( var iii = 0; iii < totalFlash; iii ++ ) 
+	             {
+	                 var spriteMaterial = new THREE.SpriteMaterial( { map: bullText, useScreenCoordinates: false } );				
+		             var flash = new THREE.Sprite( spriteMaterial );
+		             flash.scale.set( 1, 1, 1); // imageWidth, imageHeight					 
+		             this.bullGroupL.add( flash );					 
+	             }	
+
+	             for( var iii = 0; iii < totalFlash; iii ++ ) 
+	             {
+	                 var spriteMaterial = new THREE.SpriteMaterial( { map: bullText, useScreenCoordinates: false } );				
+		             var flash = new THREE.Sprite( spriteMaterial );
+		             flash.scale.set( 1, 1, 1); // imageWidth, imageHeight					 
+		             this.bullGroupR.add( flash );					 
+	             }					 
+				 
+	             this.bullGroupL.position.set(0,0,0);
+	             this.bullGroupR.position.set(0,0,0);				 
+				 
+				 ConstrLaser.ARR_LASERS.push(this); 
+
+				 ConstrLaser.update = function()
+                {
+				   for (var kl = 0; kl < ConstrLaser.ARR_LASERS.length; kl++  )
+				   {
+				      if ( ConstrLaser.ARR_LASERS[kl].status == "flash")
+					  {
+				         ConstrLaser.ARR_LASERS[kl].update();
+				      }		 
+				   }
+				} 
+
+                this.launch = function(pX,pY,pZ)
+                {
+				   
+				  sourceXL = pX - 5;
+				  sourceXR = pX + 2;
+				  sourceYR = pY - 2;
+                  sourceYL = pY - 2;
+                  sourceZL = pZ + 0.3;
+                  sourceZR = pZ + 0.3;
+ 
+                  this.status = "flash"; 
+				}				
+				 
+                this.update = function()
+                {
+				   if (this.status == "flash")
+				   {
+				      if (laserTimer == 0)
+				      {
+				         scene.add(this.laserL);
+				         scene.add(this.laserR);						 
+				         scene.add(this.bullGroupL);	
+				         scene.add(this.bullGroupR);						 
+				 
+						if (Math.random()*10<2)
+						{
+					       targetXL = camera.position.x;
+					       targetXR = camera.position.x; 
+					       targetYR = camera.position.y;
+					       targetYL = camera.position.y;
+					       targetZR = camera.position.z; 
+					       targetZL = camera.position.z;
+						   this.targetStatus = "cam";;
+						   this.laserL.material.color = new THREE.Color( 0xffffff );
+			    	       renderer.setClearColor(colorEnvAdd);
+						   for (jj= 0; jj< CONSTR_Unit.ARR_UNITS.length; jj ++)
+						   {
+                              CONSTR_Unit.ARR_UNITS[jj].unit.material.color = new THREE.Color( colorEnvAdd );
+                           } 	
+
+						   
+                        }else
+                        {
+					       targetXL = sourceXL - Math.random()*10-10;
+					       targetXR = sourceXR + Math.random()*10+10; 
+					       targetYR = sourceYR - 15;
+					       targetYL = sourceYL - 15;
+					       targetZR = sourceZR + 0.3; 
+					       targetZL = sourceZL + 0.3;
+						   this.laserL.material.color = new THREE.Color( 0x000000 );						   						   
+						}
+						
+						for (hj = 0; hj < this.bullGroupL.children.length; hj++ )
+						{
+						     this.bullGroupL.children[hj].position.set(0,0,0);
+						     this.bullGroupR.children[hj].position.set(0,0,0);							 
+						}
+                          
+						this.bullGroupL.position.set(targetXL,  targetYL, targetZL);  
+						this.bullGroupR.position.set(targetXR,  targetYR, targetZR); 
+		                laserTimer++;
+						
+					 }					 
+				     
+				     if(laserTimer>0&&laserTimer<41)
+				     {
+			             for ( var sa=0; sa<this.arrPointsL.length; sa++)
+			             { 	
+				            this.arrPointsL[sa].x =  (targetXL - sourceXL)/countPoints*sa + sourceXL + Math.random()*3; 				  
+				            this.arrPointsL[sa].y =  (targetYL - sourceYL)/countPoints*sa + sourceYL + Math.random()*3;  
+				            this.arrPointsL[sa].z =  (targetZL - sourceZL)/countPoints*sa + sourceZL + Math.random()*3; 
+
+				            this.arrPointsR[sa].x =  (targetXR - sourceXR)/countPoints*sa + sourceXR + Math.random()*3; 				  
+				            this.arrPointsR[sa].y =  (targetYR - sourceYR)/countPoints*sa + sourceYR + Math.random()*3;  
+				            this.arrPointsR[sa].z =  (targetZR - sourceZR)/countPoints*sa + sourceZR + Math.random()*3;							
+				         }
+                         this.splineL.arrPointsL = this.arrPointsL;				  
+				         this.laserL.geometry.vertices =  this.splineL.getPoints(countCurves);
+                         this.laserL.geometry.verticesNeedUpdate = true; 
+				
+                         this.splineR.arrPointsR = this.arrPointsR;				  
+				         this.laserR.geometry.vertices =  this.splineR.getPoints(countCurves);
+                         this.laserR.geometry.verticesNeedUpdate = true; 				
+					  
+                          for ( var df = 0;  df < this.bullGroupL.children.length; df ++)
+			              {
+	                        this.bullGroupL.children[ df ].position.y += Math.random()*2-1;
+	                        this.bullGroupL.children[ df ].position.x += Math.random()*2-1;	
+	                        this.bullGroupL.children[ df ].position.z += Math.random()*2-1;	
+
+	                        this.bullGroupR.children[ df ].position.y += Math.random()*2-1;
+	                        this.bullGroupR.children[ df ].position.x += Math.random()*2-1;	
+	                        this.bullGroupL.children[ df ].position.z += Math.random()*2-1;								
+				          }	
+                      					  
+					      laserTimer++; 
+					 }
+					 
+                     if (laserTimer == 40)
+                     {
+					     laserTimer = 0;
+						 this.status = "none";;
+				         scene.remove(this.laserL);	
+				         scene.remove(this.laserR);						 
+					     scene.remove(this.bullGroupL); 						
+						 scene.remove(this.bullGroupR);
+                         this.targetStatus = "none";
+			    	       renderer.setClearColor(colorEnv);
+						   for (jj= 0; jj< CONSTR_Unit.ARR_UNITS.length; jj ++)
+						   {
+                              CONSTR_Unit.ARR_UNITS[jj].unit.material.color = new THREE.Color( colorEnv );
+                           } 						 
+				     }
+                   }				  		
+				}				
+		   } 		   
+
+		   // SETUP ========================================================
+
+			function setup() 
+			{
+				document.body.style.backgroundColor = colorEnv;
+				setupThreeJS();
+				setupWorld();
+
+				requestAnimationFrame(function animate() {
+					draw();
+
+					frameDelta += clock.getDelta();
+					while (frameDelta >= INV_MAX_FPS) 
+					{
+		              //  player.moveBackward  = false;				
+				        player.update(INV_MAX_FPS);						
+						frameDelta -= INV_MAX_FPS;
+					}
+
+					requestAnimationFrame( animate );
+				});
+			}
+
+			function setupThreeJS() 
+			{
+				scene = new THREE.Scene();
+			    //scene.fog = new THREE.FogExp2(colorEnv, 0.001);
+
+				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera.position.x = -50;			
+				camera.position.y = 4;
+				camera.position.z = 0;			
+
+				renderer = new THREE.WebGLRenderer({antialias: true});
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setClearColor(colorEnv);					
+				document.body.appendChild( renderer.domElement );
+
+                var ambientLight = new THREE.AmbientLight(0xe5e5e5);
+                ambientLight.name = 'ambientLight';
+                scene.add(ambientLight);
+				
+                var dirLight = new THREE.DirectionalLight(0xe5e5e5);
+                dirLight.position.set(-20, 20, 20);
+                scene.add(dirLight);		
+
+				clock = new THREE.Clock();
+				player = new THREE.FirstPersonControls(camera);
+				player.movementSpeed = 50;
+				player.lookSpeed = 0.1;
+			}
+
+			function setupWorld()
+			{	
+			     //coll
+	             loader = new THREE.OBJMTLLoader();
+                 loader.load("col.obj", "col.mtl", function (obj) 
+			     {
+                   obj.position.set(0, -10, 0);
+				   scene.add(obj);
+                 			  
+			     });
+
+				var cubeGeometry =  new THREE.CylinderGeometry(12, 12 ,0.3, 16, 2 );			
+               // var cubeGeometry = new THREE.BoxGeometry(7, 7, 5);
+                var cubeBumpMaterial = new THREE.MeshBasicMaterial( { color: 0x30c380} );
+                bumpCube = new THREE.Mesh(cubeGeometry, cubeBumpMaterial);	
+                bumpCube.position.set(0,-9,0);	
+                scene.add(bumpCube);				
+
+	             var colFloorG = new THREE.PlaneGeometry(50, 50, 1,1);
+                 var mat = new THREE.MeshBasicMaterial();
+                 mat.map = new THREE.ImageUtils.loadTexture("col-m.png");
+                 mat.shading = THREE.SmoothShading;
+                 mat.transparent = true;
+                 mat.depthWrite = false;
+                 mat.color = new THREE.Color(0x000000);	
+                 var colFloor = new THREE.Mesh(colFloorG, mat);
+			     colFloor.position.set(0, -10, 0);
+				 colFloor.rotation.x = -Math.PI/2;
+				 //colFloor.scale.set(4,4,4);				 
+                 scene.add(colFloor);
+
+				 //practice 
+                 var bullText = THREE.ImageUtils.loadTexture( 'bull.png' );
+                 bullGroup = new THREE.Object3D();
+	
+	             var totalBull = 20;
+	             for( var i = 0; i < totalBull; i++ ) 
+	             {
+	                 var spriteMaterial = new THREE.SpriteMaterial( { map: bullText, useScreenCoordinates: false/*, color: colorUnit*/ } );				
+		             var sprite = new THREE.Sprite( spriteMaterial );
+		             sprite.scale.set( 1.5, 1.5, 1.5); // imageWidth, imageHeight
+		             sprite.position.set( Math.random()*10-5, Math.random()*10-5,  Math.random()*10-5);
+		             bullGroup.add( sprite );
+	             }
+	             bullGroup.position.y = 0;
+	             bullGroup.position.x = 0;				
+	             scene.add( bullGroup );	
+				 
+				  //laser 
+                  ConstrLaser.ARR_LASERS = []; 	
+				  
+			      //units
+		          CONSTR_Unit.ARR_UNITS=[];
+		          CONSTR_Unit.COUNT = 0;
+	
+                  var f = new CONSTR_Unit(0,0,10000);
+                  f = new CONSTR_Unit(0,0,10000);
+                  f = new CONSTR_Unit(0,0,10000);
+                  f = new CONSTR_Unit(0,0,10000);
+                  f = new CONSTR_Unit(0,0,10000);
+                  f = new CONSTR_Unit(0,0,10000);
+                  f = new CONSTR_Unit(0,0,10000);
+                  f = new CONSTR_Unit(0,0,10000);
+                  f = new CONSTR_Unit(0,0,10000);
+                  f = new CONSTR_Unit(0,0,10000);
+                  f = new CONSTR_Unit(0,0,10000);
+                  f = new CONSTR_Unit(0,0,10000);
+                  f = new CONSTR_Unit(0,0,10000);
+                  f = new CONSTR_Unit(0,0,10000);
+                  f = new CONSTR_Unit(0,0,10000);				  
+				  
+            }
+		  		
+			// DRAW ================================
+
+			function draw() 
+			{  
+              if(gameStatus == "play")
+              {			  
+			    //Centre sourse
+                for ( var df = 0;  df < bullGroup.children.length; df ++)
+			    {
+				    if ( bullGroup.children[ df ].position.y  < 5)
+					{
+					   if ( bullGroup.children[ df ].position.y > -1)
+					   {
+					     bullGroup.children[ df ].material.opacity -= 0.05;	
+					   }	  
+	                   bullGroup.children[ df ].position.y += 0.08;				   
+                    }
+				    if ( bullGroup.children[ df ].position.y  > 5 )
+					{
+	                   bullGroup.children[ df ].position.y = - 10;
+                       bullGroup.children[ df ].material.opacity = 1;					   
+                    }								
+				}
+				
+                if (chanceEnv == true && statusEnv == "white")
+                {
+				    chanceEnv = false;
+			    	renderer.setClearColor(colorEnv);
+				    for (jj= 0; jj< CONSTR_Unit.ARR_UNITS.length; jj ++)
+				    {
+                       CONSTR_Unit.ARR_UNITS[jj].unit.material.color = new THREE.Color( colorEnv);
+                    }				
+				}				
+								
+				if ( Math.abs(camera.position.x)< 7 && Math.abs(camera.position.z)<7 )
+				{
+				   chanceEnv = true;
+				   statusEnv = "green";
+				   timerPlayer++;
+				   if (timerPlayer == 5)
+				   {
+	                   timerPlayer = 0;
+                       if (player.movementSpeed <51)
+                       {   					   
+				           player.movementSpeed ++ ;
+						   if (  player.movementSpeed%2 == 0 && arrStrokeSpd.length<25 )
+						   {
+		                      arrStrokeSpd.push("<img src=\"bull.png\">");
+                              showSpeeds.innerHTML = arrStrokeSpd;							  
+                           }							  
+					   } 
+			    	       renderer.setClearColor(0x30c380);
+						   for (jj= 0; jj< CONSTR_Unit.ARR_UNITS.length; jj ++)
+						   {
+                              CONSTR_Unit.ARR_UNITS[jj].unit.material.color = new THREE.Color( 0x30c380 );
+                           } 				   
+				   }   
+				}else
+				{
+				   statusEnv = "white";
+				}
+
+                if (scores != oldScores)
+                {
+				   oldScores = scores;
+                   showBullets.innerHTML += " * ";				   
+				}				
+			
+                // objects 			    
+				CONSTR_Unit.update();	
+                ConstrLaser.update();
+				
+				if ( scores == 25 )
+				{
+				   gameStatus = "makeExit"   
+				}
+			  }
+              if (gameStatus == "makeExit")
+              {
+			    for (var lk = 0; lk < 5; lk ++)
+				{
+	             var crateTexture = THREE.ImageUtils.loadTexture( 'smk.png' );			  
+                 var crateMaterial = new THREE.SpriteMaterial( { map: crateTexture, useScreenCoordinates: false, color: 0x30c380, rotation: Math.random()*Math.PI*2} );
+	             var sprite2 = new THREE.Sprite( crateMaterial );
+	             sprite2.scale.set( 35, 35, 1.0 ); // imageWidth, imageHeight
+				 sprite2.position.set( Math.random()*5-2.5, 10 + Math.random()*5-2.5, Math.random()*5-2.5); 
+	             scene.add( sprite2 );	
+                 arrColClouds.push(sprite2);	
+                 arrCollCloudsSpd.push(Math.random()*0.01); 				 
+			    }
+                 topMessage.style.color = "#ffffff";				
+                 topMessage.innerHTML = "Go to source.";			 
+	             setTimeout("deleteText()", 6000);
+				 gameStatus = "exit";
+			     renderer.setClearColor(0x000000);
+				 for (jj= 0; jj< CONSTR_Unit.ARR_UNITS.length; jj ++)
+				 {
+                           CONSTR_Unit.ARR_UNITS[jj].unit.material.color = new THREE.Color( 0x000000 );
+                 } 				 
+				 
+			  } 	
+              if (gameStatus == "exit")
+              {
+			    for (nm = 0 ; nm < arrColClouds.length; nm ++)
+				{
+				  arrColClouds[nm].material.rotation += arrCollCloudsSpd[nm];
+				}
+                for ( var df = 0;  df < bullGroup.children.length; df ++)
+			    {
+				    if ( bullGroup.children[ df ].position.y  < 15)
+					{
+					   if ( bullGroup.children[ df ].position.y > 5)
+					   {
+					     bullGroup.children[ df ].material.opacity -= 0.05;	
+					   }	  
+	                   bullGroup.children[ df ].position.y += 0.3;				   
+                    }
+				    if ( bullGroup.children[ df ].position.y  > 7 )
+					{
+	                   bullGroup.children[ df ].position.y = - 10;
+                       bullGroup.children[ df ].material.opacity = 1;					   
+                    }								
+				}
+                if ( ( Math.abs(camera.position.x)< 7 && Math.abs(camera.position.z)<7 ) )
+                {
+				   camera.position.x = 1000000;
+				   camera.position.z = 1000000;
+			       renderer.setClearColor(0x30c380);
+                   showSpeeds.innerHTML = "";					   	
+	               showBullets.parentNode.removeChild(showBullets);	
+                   topMessage.innerHTML = "Nice!";				   
+	               setTimeout("endChangeText()", 6000);	
+                   gameStatus = "end";				   
+				}
+
+                if (gameStatus == "end")	
+                {
+                   topMessage.innerHTML = "Nice!";				
+				}				
+				
+			  } 			  
+				
+		     	renderer.render( scene, camera );
+		   	}
+			
+
+			// RUN ==========================================================
+
+			setup();
+		
+		</script>
+		<div id = "message">test </div>
+	</body>
+</html>

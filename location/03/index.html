@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<style>
+			body {
+				margin: 0;
+				overflow: hidden;
+				background-color:0x9db3b5;				
+			}
+			
+			#info {
+			    font-size: 40px;
+			    color: white;
+				position: absolute;
+				top: 0px;
+				width: 100%;
+				padding: 5px;
+				text-align:center;
+			}
+			
+			a {
+			     margin: 10px;
+			     font-size: 20px;
+	             color: white;	
+                 border: 2px solid white; 
+                 padding: 5px;
+                 text-decoration: none;	
+                 padding: 5px 15px 5px 15px;				 
+			}
+			
+			a:hover {
+	             color:white;	
+                 border: 2px solid white; 			 
+                 text-decoration: none;	
+                 background-color: #cda434;					 
+			}			
+			
+		</style>
+	</head>
+	<body>
+		
+		<div id="info"></div>	
+	
+		<script src="three.js"></script>
+		<script src="FirstPersonControls.js"></script>
+        <script src="MTLLoader.js"></script>
+        <script src="OBJMTLLoader.js"></script>		
+		<script>
+
+			// GLOBALS ======================================================
+
+		   var info1 = "<--- ! ---> ";
+					   
+		   var info2 = "... рельсы кончились </br>:( ";
+		   
+		   var infoEnd =  " <a href=\"http://js.otrisovano.ru/location/02\"> <-&nbsp; Предыдущий шаг </a> " +
+                          " <a href=\"http://js.otrisovano.ru/location/04\"> Следующий шаг&nbsp; -> </a>" ;			   
+				   				   
+		   var  topMessage = document.getElementById("info");
+           topMessage.innerHTML = info1; 
+	       setTimeout("deleteText()", 6000);		
+          
+           function deleteText()
+           {
+              topMessage = document.getElementById("info");
+               topMessage.innerHTML = ""; 				 
+		   }
+		   
+           function deleteText2()
+           {
+              topMessage = document.getElementById("info");
+              topMessage.innerHTML = infoEnd; 		   
+		   }		   
+			
+			var camera, scene, renderer, player, clock;
+			var INV_MAX_FPS = 0.01, frameDelta = 0;
+			var colorEnv = 0x030806;
+			
+           var dist = 5;			
+
+           var bumpCube;
+		   var obj;   
+
+		   var gameStatus = "run";
+		   var rConstructor;
+		   var train;
+		   var trainSpd = -12;
+		   var finish = 4000;
+		   
+		   // Constructor of RailRoad =========================================
+		   function roadConstructor(camZ)
+		   {
+		      this.camZ = camZ;
+              this.addCount = 2;
+              this.rails = [1,2,3,4,5,6,7];	
+              this.distance = 0;  	
+              this.delRail = false;			  
+			  
+              this.updateRoad = function(camZ)
+              { 				  
+				     this.camZ = camZ;
+			         if ( Math.abs(this.rails[0].position.z - this.camZ) < (this.rails.length / 4 * 3.3 )-4)
+				     {
+     					  num =  0;
+                          for (i=0; i< this.addCount ; i = i+2)
+                          { 
+						    zPoint = this.rails[0].position.z ;
+							
+                              r =  this.rails.pop();
+                              r.position.z =  zPoint - 3.3;
+	                          this.rails.unshift(r);
+							  
+                              r =  this.rails.pop();
+                              r.position.z =  zPoint - 3.3;
+	                          this.rails.unshift(r);
+							  
+	                          num++;
+                         }	
+
+                         this.railsCut();  						 
+				   	}					
+			         if (  (this.rails[this.rails.length-2].position.z - this.camZ) < (this.rails.length / 4 * 3.3 )-4)
+					 {
+	
+                         num =  0;
+                         for (i=0; i< this.addCount ; i = i+2)
+                         {   
+						    zPoint = this.rails[this.rails.length-2].position.z ;
+							
+                            r = this.rails.shift();
+                            r.position.z = zPoint + 3.3;
+	                        this.rails.push(r);
+							
+                            r =  this.rails.shift();
+                            r.position.z = zPoint + 3.3;
+	                        this.rails.push(r);	
+							
+	                        num++;
+                         }
+                         this.railsCut(); 						 
+					 }						 
+	         }
+			 
+             this.railsCut = function()
+             {
+                this.distance += 1;
+                if (this.distance > 10)
+                {
+			      this.distance = 5;
+                  this.delRail = true;		  
+				} 							 
+			 } 			 
+		   }	   
+	   
+
+			// SETUP ========================================================
+
+			function setup() {
+				document.body.style.backgroundColor = colorEnv;
+				setupThreeJS();
+				setupWorld();
+
+				requestAnimationFrame(function animate() 
+				{
+				    if (gameStatus == "run")
+					{
+					   draw();
+					} 
+				    if (gameStatus == "end")
+					{
+					   draw1();
+					} 
+
+				    if (gameStatus == "Exit")
+					{
+					   draw2();
+					}  					
+
+					frameDelta += clock.getDelta();
+					while (frameDelta >= INV_MAX_FPS) {
+						update(INV_MAX_FPS);
+						frameDelta -= INV_MAX_FPS;
+					}
+
+					requestAnimationFrame( animate );
+				});
+			}
+
+			function setupThreeJS() {
+				scene = new THREE.Scene();
+			   // scene.fog = new THREE.FogExp2(colorEnv, 0.03);
+
+				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera.position.x = 0;			
+				camera.position.y = 4;
+				camera.position.z = 99;
+               
+			    rConstructor = new roadConstructor(camera.position.z);			
+
+				renderer = new THREE.WebGLRenderer({antialias: true});
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setClearColorHex(colorEnv);					
+				renderer.shadowMapEnabled = true;
+				document.body.appendChild( renderer.domElement );
+
+               var ambientLight = new THREE.AmbientLight(0x332222);
+               ambientLight.name = 'ambientLight';
+               scene.add(ambientLight);
+				
+                var dirLight = new THREE.DirectionalLight(0xE2F7F8);
+                dirLight.position.set(20, 20, 20);
+                scene.add(dirLight);		
+
+		   
+
+				clock = new THREE.Clock();
+				player = new THREE.FirstPersonControls(camera);
+				player.movementSpeed = 100;
+				player.lookSpeed = 0.1;
+			}
+
+			function setupWorld()
+			{
+			
+
+		                 loader = new THREE.OBJMTLLoader();
+                         loader.load("shp.obj", "shp.mtl", function (obj) 
+						   {
+
+                             obj.name = 'shpala';
+                             obj.position.x = 0;	
+                             obj.position.z = 0;
+			                 obj.position.y = 0;	
+
+							 rConstructor.rails = [];						 
+
+							 
+							 for (i=0; i<60; i++ )
+							 {
+
+								 
+				                 var copyobj = obj.clone();
+                                 copyobj.position.z = (camera.position.z - 30 * 3.3) + 3.3 * i;	
+				                 scene.add(copyobj);
+								 rConstructor.rails.push(copyobj);
+								 								 
+				                 var copyobj = obj.clone();
+                                 copyobj.position.z = (camera.position.z - 30 * 3.3) + 3.3 * i;	
+                                 copyobj.position.x = 8;								 
+				                 scene.add(copyobj);
+								 rConstructor.rails.push(copyobj);
+							     								 								 
+							 }								 
+							 
+                           });			
+						
+                var projectorGeom = new THREE.SphereGeometry(0.5, 8,8 );
+                var projectorMat =  new THREE.MeshBasicMaterial( { color: 0xffaa00, transparent: true, blending: THREE.AdditiveBlending } );
+				
+                projector = new THREE.Mesh(projectorGeom, projectorMat);
+                projector.name = 'p1';
+                projector.position.x = 8;
+                projector.position.z = 2000;
+	            projector.position.y = 12;    
+
+
+                projector1 = projector.clone();	
+
+                projector1.position.x = -2;
+                projector1.position.z = 0;		
+	            projector1.position.y = -10; 				
+
+				
+                projector2 = projector.clone();	
+
+                projector2.position.x = 2;
+                projector2.position.z = 0;	
+	            projector2.position.y = -10; 				
+	
+				
+				projector.add(projector1);	
+				projector.add(projector2);				
+				
+				scene.add(projector);					
+				
+			}   			
+			
+			// DRAW ================================
+
+			function draw() 
+			{
+                 //delroad------------------
+				 if (rConstructor.delRail == true)
+				 {
+				    rConstructor.delRail = false;
+					r =  rConstructor.rails[0];
+					r1 =  rConstructor.rails[1];
+                    rConstructor.rails.splice(0,2);
+				    scene.remove(r);
+				    scene.remove(r1);										
+				 }				
+			
+							
+                 //road------------------				
+			     if ( scene.getObjectByName("shpala") )
+				 {
+			        rConstructor.updateRoad(camera.position.z);
+                 }
+				 
+                 //train-------------------				 
+				 projector.position.z += trainSpd;
+				 if ( Math.abs( projector.position.z) - Math.abs(camera.position.z)>6000)
+				 {
+				    if (Math.random()*2<1)
+					{
+					  projector.position.x = 0;  
+				      projector.position.z = camera.position.z - 3000;	
+                      trainSpd =  12;						  
+					}else
+					{
+				      projector.position.x = 8; 
+	
+					  projector.position.z = camera.position.z + 3000;
+                      trainSpd =  - 12;			  
+					}
+
+				 }		 
+			     
+				 if (rConstructor.rails.length < 6)
+				 {
+				   gameStatus = "end";
+				 }				 
+				 
+		     		renderer.render( scene, camera );
+			}
+			
+			function draw1() 
+			{ 
+                    topMessage.innerHTML = info2; 
+		            setTimeout("deleteText2()", 5000);					
+				    player.moveForward = false;			 
+		     		renderer.render( scene, camera );
+					gameStatus = "Exit";
+			}
+
+			function draw2() 
+			{ 			
+				    player.moveForward = false;			 
+		     		renderer.render( scene, camera );
+			}				
+
+			
+			// UPDATE =======================================================
+
+			function update(delta)
+			{	   	
+                if (player.target.x < -3|| player.target.x> 9)
+                {
+				         player.moveForward = false;		
+				} 				
+				player.update(delta);
+			}
+
+			// RUN ==========================================================
+
+			setup();
+			
+	
+
+		</script>
+		<div id = "message">test </div>
+	</body>
+</html>

@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<style>
+			body {
+				margin: 0;
+				overflow: hidden;
+				background-color:0x9db3b5;				
+			}
+			
+			#info {
+			   font-size: 30px;
+			    color: 0x1b2e45;
+				position: absolute;
+				top: 0px;
+				width: 100%;
+				padding: 5px;
+				text-align:center;
+			}
+			
+			a {
+			     margin: 10px;
+			     font-size: 20px;
+	             color: white;	
+                 border: 2px solid white; 
+                 padding: 5px;
+                 text-decoration: none;	
+                 padding: 5px 15px 5px 15px;				 
+			}
+			
+			a:hover {
+	             color:white;	
+                 border: 2px solid white; 			 
+                 text-decoration: none;	
+                 background-color: #cda434;					 
+			}			
+			
+		</style>
+	</head>
+	<body>
+		
+		<div id="info"></div>	
+	
+		<script src="three.js"></script>
+		<script src="FirstPersonControls.js"></script>
+        <script src="MTLLoader.js"></script>
+        <script src="OBJMTLLoader.js"></script>		
+		<script>
+
+			// GLOBALS ======================================================
+				
+		   var info1 = " Выход где-то рядом </br>";					   
+		   var info2 = " ****** !!!!!! ****** ";	
+		   var infoEnd =  " <a href=\"http://js.otrisovano.ru/location/03\"> <-&nbsp; Предыдущий шаг </a> " +
+                          " <a href=\"http://js.otrisovano.ru/location/05\"> Следующий шаг&nbsp; -> </a>" ;			   
+
+		   var  topMessage = document.getElementById("info");
+           topMessage.innerHTML = info1; 	
+	       setTimeout("deleteText()", 12000);		
+		   
+           function deleteText()
+           {
+               topMessage = document.getElementById("info");
+               topMessage.innerHTML = ""; 				 
+		   }
+
+           function deleteText2()
+           {
+               topMessage = document.getElementById("info");
+               topMessage.innerHTML = infoEnd; 				 
+		   }		   
+		    
+		   var botMessCount = 0; 
+		   
+		   var camera, scene, renderer, player, clock;
+		   var INV_MAX_FPS = 0.01, frameDelta = 0;
+		   var colorEnv = 0xdbd9cd;
+			
+           var dist = 3;			
+           
+		   var floor;
+           var sphereMesh;
+		   var modulMesh; 
+		   var sphereMeshExit;
+		   var obj;
+           var exit;		   
+           var NameColony = 0;	
+           var FlagMakeExit = false;
+           var MakeExit = false; 		   
+
+		   // CONSTRUCTOR COLONIES =========================================
+
+           function colonyConsrtuctor()
+           {
+		      this.arrColony = [];
+			  this.status = "none";
+			  this.obj;
+			  this.sphereMesh;
+			  this.geomSphere = 0;
+			  this.geomModul = 0;
+              this.endPointX = 35;
+			  this.endPointZ = 0;
+			  
+              this.setupSphereGeom = function(sphereMesh)
+              { 			  
+			         this.geomSphere = sphereMesh;
+              }
+
+			  this.setupModulGeom = function(obj)
+              {
+			         this.geomModul = obj;			  
+			  }	
+
+              this.update = function()
+              {
+			    if (this.status == "none")
+                {				
+			        if ( this.geomSphere!=0 && this.geomModul != 0 ) 
+                    {
+				       this.status = "firstM";
+			   		}
+				}
+				
+			    if (this.status == "firstM")
+                {	
+                    gModul = this.geomModul.clone();
+					gSphere = this.geomSphere.clone();
+                    positionX = 0;
+                    positionZ = 0;	
+                    speedX = (this.endPointX - positionX)/100; 
+                    speedZ = (this.endPointZ - positionZ)/100; 					
+                    m = new mConstructor(0,1, speedX, speedZ);
+					m.setupFirstModul(  gModul );
+					m.setupGrowGeom ( gSphere );
+                    this.arrColony.push(m);
+				
+                    this.status = "life";					
+				}				
+				
+				if (this.status == "life" )
+				{
+				    if(FlagMakeExit == false && MakeExit == false )
+					{
+					   if ( Math.abs(this.arrColony[0].posX - this.endPointX)< 4 && Math.abs(this.arrColony[0].posZ - this.endPointZ)< 4 )
+					   {
+                            MakeExit = true;
+							FlagMakeExit = false;						
+					   }
+                   }    					   
+				
+				    for (c=0; c<  this.arrColony.length; c++ )
+					{
+					   this.arrColony[c].updateMatrix();
+					}
+					
+
+				   if (this.arrColony.length < 5 )
+                   {
+				      if( Math.random()*50<1) 
+					  {
+                            gModul = this.geomModul.clone();
+					        gSphere = this.geomSphere.clone();	
+                            positionX = Math.random()*40+10;
+                            positionZ = Math.random()*30-15;
+                            speedX = (this.endPointX - positionX)/100; 
+                            speedZ = (this.endPointZ - positionZ)/100;   							
+                            m = new mConstructor( positionX, positionZ, speedX, speedZ );
+					        m.setupFirstModul(  gModul );
+					        m.setupGrowGeom ( gSphere );
+                            this.arrColony.push(m);						  
+					  }
+				   }				   				   
+				}
+			  }			  
+			  						  					 
+		   }  			   
+		   
+		   
+		   // CONSTRUCTOR SINGLE MATRIX =========================================
+		   
+		   function mConstructor( mX ,mZ, speedX, speedZ )
+		   {		  
+              this.mtx = [
+		                 [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]],
+		                 [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]
+		                 ];		  
+              this.timer = 0; 
+			  this.dist = 3;
+              this.countModuls = 0; 
+              this.status = "none";
+			  
+              this.nodeGeom = 0;
+              this.growGeom = 0;
+			  
+              this.posX = mX;  
+              this.posZ = mZ;
+			  
+              this.speedX = speedX;
+              this.speedZ = speedZ;     			  
+			  
+              this.setupFirstModul = function(obj)
+              {
+					   this.nodeGeom = obj;				   				   
+			  }	
+
+              this.setupGrowGeom = function(obj)
+              {
+					   this.growGeom = obj;				   					   
+			  }				  
+
+              this.updateMatrix = function()
+              {	 
+                 this.timer ++;
+                 this.posX += this.speedX/10;
+                 this.posZ += this.speedZ/10;
+  				 
+                 if (this.nodeGeom != 0 && this.growGeom != 0)
+                 { 
+                     this.status = "grow"; 					 
+				 }
+				 
+			     if ( this.status == "grow" )
+				 {
+                     if(this.countModuls < 70)
+                     {					 
+                        this.timer++;
+                        if ( this.timer > 15 )
+                        {
+					      this.addModul();						  
+						  this.timer = 0;
+					    }
+                     }					 
+
+                 }
+                 this.updateAllNodes();				 
+			   }
+			  
+               this.updateAllNodes = function()
+               {
+			      for( iX = 0; iX<this.mtx.length; iX++ )
+				  {
+				    for( iZ = 0; iZ<this.mtx[iX].length; iZ++ )
+					{
+					   for( iY = 0; iY<this.mtx[iX][iZ].length; iY++ )
+					   {
+					      if (this.mtx[iX][iZ][iY] != 0 )
+                          {
+						    this.mtx[iX][iZ][iY].update(); 						  
+						    if( this.mtx[iX][iZ][iY].status == "mustDie")
+                            {
+							  md = this.mtx[iX][iZ][iY];
+                              this.mtx[iX][iZ].splice(iY,1,0);
+                              md = null;
+					          this.countModuls --;							  
+							} 							
+						  }						  
+					   }
+					}
+				  }
+			   } 			   
+			  
+               this.addModul = function()
+               { 
+			      aa = false;
+				  while (aa == false)
+				  {
+			         iX = Math.floor(Math.random()*this.mtx.length);
+			         iZ = Math.floor(Math.random()*this.mtx[iX].length);	
+			         iY = Math.floor(Math.random()*this.mtx[iX][iZ].length);				  
+                     pos = this.mtx[iX][iZ][iY]; 
+				     if ( pos == 0)
+				     {				  				  
+				       copyGrow =  this.growGeom.clone();
+                       copyModul = this.nodeGeom.clone();					   
+			           node = new nodeModulConstructor( this.speedX, this.speedZ );
+                       node.setupGeom( copyGrow , copyModul , iX+this.posX , iZ+this.posZ , iY , this.dist );	
+                       this.mtx[iX][iZ].splice(iY,1,node);
+					   this.countModuls ++;
+					   aa = true;
+				     }
+                  } 				  			  
+			   }
+			   
+		    } 
+
+			// CONSTRUCTOR NODES =========================================
+			
+            nodeModulConstructor = function( speedX, speedZ )
+            {
+			   this.geomModul;
+			   this.modulScaleSpeed = 0.003;				   
+			   this.geomGrow;
+			   this.growScaleSpeed = 0.001;			   
+			   this.lifeTimer = 0;
+			   this.status = "none";
+			   this.rSpeed = Math.random()*0.005;
+               this.pX;
+               this.PZ;
+               this.pY;
+               this.speedX = speedX; 
+               this.speedZ = speedZ;			   
+               this.dist;
+               this.arrFlash = []; 
+               this.arrSpdFlash = []; 			   
+			   
+			   this.setupGeom = function(gGrow,gModul,iX,iZ,iY,dist)
+			   {
+			     this.geomGrow = gGrow;			   
+			     this.geomModul = gModul;
+                 this.pX = iX;
+                 this.PZ = iZ;
+                 this.pY = iY;
+				 this.dist = dist; 
+				 
+                 this.geomGrow.position.x = this.dist * iX;								   
+                 this.geomGrow.position.z = this.dist * iZ;
+                 this.geomGrow.position.y = this.dist * iY;	
+                 this.geomGrow.scale.set( 0.0001 , 0.0001, 0.0001 );				 
+	             scene.add( this.geomGrow);				 
+				 
+                 this.geomModul.position.x = this.dist * iX;								   
+                 this.geomModul.position.z = this.dist * iZ;
+                 this.geomModul.position.y = this.dist * iY;						   
+                 this.geomModul.rotation.z = Math.random()*3.14;
+                 this.geomModul.rotation.x = Math.random()*3.14; 
+                 this.geomModul.rotation.y = Math.random()*3.14;
+                 this.geomModul.scale.set( 0.0001 , 0.0001, 0.0001 );				 
+	             scene.add( this.geomModul );				 
+				 			 
+                 this.status = "grow";				 
+			   }
+			   
+			   this.update = function()
+			   { 
+			      if (this.status == "grow")
+				  {
+				    if (this.lifeTimer > 400)
+					{
+					  this.status = "makeSmallBall";
+					}
+			        this.lifeTimer++;
+			        if (this.geomGrow.scale.x < 1.8)
+				    {
+			            this.geomGrow.scale.set( this.growScaleSpeed += 0.01 , this.growScaleSpeed, this.growScaleSpeed );
+                    }
+			        if (this.geomModul.scale.x < 1 && this.lifeTimer > 120 )
+				    {				  
+                       this.geomModul.scale.set(  this.modulScaleSpeed += 0.01  , this.modulScaleSpeed, this.modulScaleSpeed );
+                    } 					 
+                    this.geomModul.rotation.x += this.rSpeed; 
+                    this.geomModul.rotation.z += this.rSpeed;
+                    this.geomModul.rotation.y += this.rSpeed;	
+			        this.geomGrow.rotation.x = this.geomModul.rotation.x; 
+			        this.geomGrow.rotation.y = this.geomModul.rotation.y; 
+			        this.geomGrow.rotation.z = this.geomModul.rotation.z;
+                  }
+				  
+				  if (this.status == "makeSmallBall")
+				  {
+				     this.geomGrow.scale.set( 0.5, 0.5, 0.5 );
+                     this.status = "life";					 
+				  }
+				  
+				  if (this.status == "life")
+				  {
+				    this.lifeTimer++;
+					if(this.lifeTimer > 500)
+                    {
+					   this.status = "flash";
+					}	
+                    this.geomModul.position.x += this.speedX; 
+                    this.geomModul.position.z += this.speedZ; 						
+                    this.geomModul.rotation.x += this.rSpeed; 
+                    this.geomModul.rotation.z += this.rSpeed;
+                    this.geomModul.rotation.y += this.rSpeed;
+                    this.geomGrow.position.x  =  this.geomModul.position.x							   
+                    this.geomGrow.position.z  =  this.geomModul.position.z				
+				  }
+				  
+				  if (this.status == "flash")
+				  { 
+	 
+					 for (i = 0; i< 5; i++ )
+					 {
+				       sh = this.geomGrow.clone();
+					   sh.position.x = this.geomGrow.position.x + i * 0.3;
+					   sh.position.y = this.geomGrow.position.y + i * 0.3;
+					   sh.position.z = this.geomGrow.position.z + i * 0.3;	
+                       scene.add(sh);					   
+                       this.arrFlash.push(sh);
+					   
+					   spd = [ (Math.random()*0.025 - 0.013), (Math.random()*0.025 - 0.013), (Math.random()*0.025 - 0.013)];
+                       this.arrSpdFlash.push(spd);					   
+                     }
+					 
+				     md = this.geomModul;
+                     this.geomModul = null;					 
+				     scene.remove(md);
+
+				     md = this.geomGrow;
+                     this.geomGrow = null;					 
+				     scene.remove(md);					 
+	 
+                     this.status = "flashFly"; 					 
+				  }
+				  
+				  if (this.status == "flashFly")
+				  {
+				     this.lifeTimer++;
+                     for(i=0; i<this.arrFlash.length; i++)
+                     {
+					    this.arrFlash[i].position.x += this.arrSpdFlash[i][0];
+					    this.arrFlash[i].position.y += this.arrSpdFlash[i][1];	
+					    this.arrFlash[i].position.z += this.arrSpdFlash[i][2];	
+					    this.arrFlash[i].scale.set( this.modulScaleSpeed -= 0.001 , this.modulScaleSpeed, this.modulScaleSpeed );			
+					 }	
+					 
+                     if (this.modulScaleSpeed < 0.1)
+                     {
+					      this.status = "end";					  
+			         }	
+				  }	
+
+                 if ( this.status == "end" )
+                 {
+				    for (i=0; i<this.arrFlash.length; i++)
+					{
+					  md = this.arrFlash[i];
+					  this.arrFlash.splice(0,1);
+					  scene.remove(md);
+					  i--;
+					}
+					this.arrFlash = null;
+					this.arrSpdFlash = null;					
+					this.status = "mustDie"; 
+				 }
+                 				 
+			   }
+			   
+			} 
+
+			// CONSTRUCTOR EXIT ====================================================
+
+            exitConstructor = function()
+            {
+			   this.timer = 0;
+			   this.geomSphere = 0;
+			   this.posX;
+			   this.posZ;
+			   this.posY;
+			   this.scale = 0.1;
+			   this.spdScale = 0.01;
+			   this.rSpeed = 0.005;			   
+			   this.status = "none";
+			   //alert("makeConstructor");
+			   
+			   this.setupGeom = function(sph)
+			   {
+			      //alert("makeExit");
+			      this.geomSphere = sph.clone();
+	              this.geomSphere.position.x = 30*dist+15;
+	              this.geomSphere.position.z = 7;
+	              this.geomSphere.position.y = 20;				  
+                  				  
+                  this.geomSphere.scale.set(  this.scale, this.scale, this.scale);				  
+                  scene.add(this.geomSphere);	
+				  
+				  this.status = "grow";				  
+			   }
+			   
+			   this.update = function()
+			   {				   
+			     if(this.status == "grow")
+				 {
+				   this.geomSphere.rotation.y += this.rSpeed;		   
+                   this.geomSphere.scale.set( this.scale += this.spdScale, this.scale, this.scale );
+                   if ( this.scale > 5 )
+                   {
+				     this.status = "wait";
+				   }				   
+				 }
+				 
+				 if (this.status == "wait")
+				 {
+				   this.geomSphere.rotation.y += this.rSpeed;	
+				 }
+				 
+				 if (this.status == "down")
+				 {
+				 	 this.geomSphere.position.y -= 0.05;
+				     this.geomSphere.rotation.y += this.rSpeed;						 
+				 }
+
+				 if (this.status == "end  ")
+				 {
+                   				 
+				 }				 
+			   }
+			   
+			   this.removeMesh = function()
+			   {
+			     md = this.geomSphere;
+				 scene.remove(this.geomSphere);
+				 md = null;
+			   }
+			   			
+			} 			
+			     
+			// SETUP 3D SPACE ======================================================
+
+			function setup() 
+			{
+				document.body.style.backgroundColor = colorEnv;
+				setupThreeJS();
+				setupWorld();
+
+				requestAnimationFrame(function animate(){
+					draw();
+
+					frameDelta += clock.getDelta();
+					while (frameDelta >= INV_MAX_FPS) 
+					{
+		               //player.moveForward = false;				
+				        player.update(INV_MAX_FPS);						
+						frameDelta -= INV_MAX_FPS;
+					}
+
+					requestAnimationFrame( animate );
+				});
+			}
+
+			function setupThreeJS() {
+				scene = new THREE.Scene();
+			    scene.fog = new THREE.FogExp2(colorEnv, 0.01);
+
+				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera.position.x = -20;			
+				camera.position.y = 4;
+				camera.position.z = 0;
+               
+				renderer = new THREE.WebGLRenderer({antialias: true});
+				renderer.setSize(window.innerWidth, window.innerHeight );
+				renderer.setClearColorHex(colorEnv);					
+				renderer.shadowMapEnabled = true;
+				document.body.appendChild( renderer.domElement );
+
+                var ambientLight = new THREE.AmbientLight(0x332222);
+                ambientLight.name = 'ambientLight';
+                scene.add(ambientLight);
+				
+                var dirLight = new THREE.DirectionalLight(0xE2F7F8);
+                dirLight.position.set(0, -20, 20);
+                scene.add(dirLight);					   
+
+				clock = new THREE.Clock();
+				player = new THREE.FirstPersonControls(camera);
+				player.movementSpeed = 100;
+				player.lookSpeed = 0.1;
+                player.activeLook = false;					
+				
+	            setTimeout("unblockStartView()", 6000);				
+			}
+			
+			function unblockStartView()
+            {				
+                player.activeLook = true;				
+			}
+
+			function setupWorld()
+			{ 
+
+			      var floorMat =  new  THREE.MeshPhongMaterial({color: 0xd7e2ef, shininess: 100});
+				  floor =  new THREE.Mesh( new THREE.CircleGeometry( 1000, 20, 0, Math.PI * 2 ), floorMat );    
+                  floor.rotation.x =  Math.PI/2; 
+				  floor.position.set( 0, 45, 0);
+				  scene.add( floor );
+			
+			      colony = new colonyConsrtuctor();
+				  
+                  var sphere = new THREE.SphereGeometry(0.3, 20, 20);
+                  var spherMat = new  THREE.MeshPhongMaterial({color: 0x7d037c, shininess: 100});
+                  spherMat.map = THREE.ImageUtils.loadTexture("tx.jpg");
+                  spherMat.bumpMap = THREE.ImageUtils.loadTexture("txb.jpg");				  
+                  sphereMesh = new THREE.Mesh(sphere, spherMat);				  
+                  colony.setupSphereGeom(sphereMesh); 				  
+						  
+		          loader = new THREE.OBJMTLLoader();
+                  loader.load("1.obj", "1.mtl", function ( obj ) 
+				     {
+                       obj.name = 'modul'; 					   
+					   colony.setupModulGeom(obj);
+ 				       modulMesh = obj.clone();								   
+                     });	
+                 	               
+                  sphereMeshExit =  sphereMesh.clone();                 
+				  					 
+			}   			
+			
+			// DRAW FRAME =========================================================
+
+			function draw() 
+			{
+			        if( MakeExit == true && FlagMakeExit == false )
+					{
+					   //alert("draw");
+                       exit = new exitConstructor();
+					   sph =  modulMesh.clone(); 
+                       exit.setupGeom(sph);	
+					   FlagMakeExit = true;	
+                       MakeExit = false;					   
+					}
+					
+					if ( FlagMakeExit == true && MakeExit == false)
+					{
+					   if (exit.status == "wait" )
+					   {
+					      if ( Math.abs(player.target.x - exit.geomSphere.position.x) < 1.2 && Math.abs(player.target.z - exit.geomSphere.position.z) < 1.2 )
+                          {
+						      exit.status = "down";	                              							  
+						  } 						  
+					   }
+					   
+					   if (exit.status == "down" )
+					   {
+							  player.moveForward = false;
+                              player.moveBackward = false;	
+
+                              if ( exit.geomSphere.position.y - player.target.y < 3)
+                              {
+							    exit.status = "end";
+							  }							  
+					   }
+					   
+					   if (exit.status == "end" )
+					   {
+							  player.moveForward = false;
+                              player.moveBackward = false;
+							  
+                              topMessage.innerHTML = info2; 
+		                      setTimeout("deleteText2()", 5000);								  
+							  topMessage.style.color = "white";								  
+							  
+                              sphereMeshExit.position.x = player.target.x; 
+                              sphereMeshExit.y = player.target.y;
+                              sphereMeshExit.position.z = player.target.z;
+							  sphereMeshExit.scale.set(25,25,25);
+				              sphereMeshExit.scale.x = -25;   							  
+                              scene.add(sphereMeshExit);
+							  
+                              exit.removeMesh();
+							  exit.status = "Exit"; 						  
+					   }
+					   
+					   if (exit.status == "Exit")
+					   {
+							  player.moveForward = false;
+                              player.moveBackward = false;					   
+					   }
+					   
+					   exit.update();
+					}
+					
+	                colony.update();			 
+		     		renderer.render( scene, camera );   				
+		   	}
+
+			// RUN ==========================================================
+
+			setup();			
+		
+		</script>
+		<div id = "message">test </div>
+	</body>
+</html>

@@ -1,0 +1,18 @@
+# 3ds Max Wavefront OBJ Exporter v0.97b - (c)2007 guruware
+# File Created: 08.07.2016 23:59:32
+
+newmtl Material__48
+	Ns 57.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.7176 0.7333 0.6980
+	Kd 0.8078 0.8078 0.8039
+	Ks 0.7925 0.4654 0.4654
+	Ke 0.0000 0.0000 0.0000
+	map_Ka txDoor.jpg
+	map_Kd txDoor.jpg
+	map_bump txDoor.jpg
+	bump txDoor.jpg

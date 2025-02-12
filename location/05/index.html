@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<style>
+			body {
+				margin: 0;
+				overflow: hidden;
+				background-color:0x9db3b5;				
+			}
+			
+			#info {
+			   font-size: 30px;
+			    color: #75b6a3;
+				position: absolute;
+				top: 0px;
+				width: 100%;
+				padding: 5px;
+				text-align:center;
+			}
+			
+			a {
+			     margin: 10px;
+			     font-size: 20px;
+	             color: white;	
+                 border: 2px solid white; 
+                 padding: 5px;
+                 text-decoration: none;	
+                 padding: 5px 15px 5px 15px;				 
+			}
+			
+			a:hover {
+	             color:white;	
+                 border: 2px solid white; 			 
+                 text-decoration: none;	
+                 background-color: #cda434;					 
+			}	
+		</style>
+	</head>
+	<body>
+		
+		<div id="info"></div>	
+	
+		<script src="three.js"></script>
+		<script src="FirstPersonControls.js"></script>
+        <script src="MTLLoader.js"></script>
+        <script src="OBJMTLLoader.js"></script>		
+	  	<script>
+
+			// GLOBALS ======================================================
+
+		   var info1 = " Иди за белым кроликом </br>";
+		   var info2 = " *******!!!!!*******</br>";
+		   var infoEnd =  " <a href=\"http://js.otrisovano.ru/location/04\"> <-&nbsp; Предыдущий шаг </a> " +
+                          " <a href=\"http://js.otrisovano.ru/location/06\"> Следующий шаг&nbsp; -> </a>" ;				   
+
+		   var  topMessage = document.getElementById("info");
+		   topMessage.style.color = "#ffffff";		
+           topMessage.innerHTML = info1; 	
+	       setTimeout("deleteText()", 6000);
+
+           function deleteText()
+           {
+               topMessage = document.getElementById("info");
+               topMessage.innerHTML = ""; 				 
+		   }
+
+           function deleteText2()
+           {
+               topMessage = document.getElementById("info");
+               topMessage.innerHTML = infoEnd; 				 
+		   }		   
+			
+		   var camera, scene, renderer, player, clock;
+		   var INV_MAX_FPS = 0.01, frameDelta = 0;
+		   var colorEnv = 0x171714;
+			
+           var dist = 3;			
+
+		   var unitsArr = [];
+		   var bumpCube;
+		   var arrCubes = [];
+           //var floorMesh;		   
+		   var geom;
+		   
+		   var pointLightScene;
+		   var exitTotem;
+		   var gameStatus = "play";
+		    
+		   
+		   // Constructor Geom Storache =====================================
+		   
+		   function geomStorageConstructor()
+           {
+              this.geomHead = 0;
+              this.geomBody = 0;
+              this.geomLeg1Top = 0;
+              this.geomLeg2Top = 0;	
+              this.geomLeg3Top = 0;	
+              this.geomLegBottom = 0;
+              this.geomFly = 0;
+			  this.status = "none";
+			  
+		   
+		      this.pushGeomBody = function(obj)
+              {
+			     this.geomBody = obj.clone();		 				 
+			  } 
+
+              this.pushGeomHead = function(obj)
+              {
+			     this.geomHead = obj.clone();			 				 
+			  } 
+
+              this.pushGeomLeg1Top = function(obj)
+              {
+			     this.geomLeg1Top  = obj.clone();				 				 
+			  }
+			  
+              this.pushGeomLeg2Top = function(obj)
+              {
+			     this.geomLeg2Top = obj.clone();				 				 
+			  } 
+
+              this.pushGeomLeg3Top = function(obj)
+              {
+			     this.geomLeg3Top = obj.clone();				 				 
+			  }	
+
+              this.pushGeomLegBottom = function(obj)
+              {
+			     this.geomLegBottom = obj.clone();				 				 
+			  }			  
+			  
+              this.pushGeomFly= function(obj)
+              {
+			     this.geomFly = obj.clone();
+				 				 
+			  }
+
+              this.update = function(obj)
+              {						  					
+			     if (this.status == "none")
+				 {
+
+			        if ( this.geomBody != 0 && this.geomHead != 0 && this.geomLeg1Top != 0
+                          && this.geomLeg2Top != 0	&& this.geomLeg3Top != 0 && this.geomLegBottom != 0 && this.geomFly != 0)
+                    {
+				        this.status = "done";						
+				    }					
+                 }	
+					
+				 if ( this.status == "done" )
+			     {   
+				 				 
+				 				 
+					   for (ii=0; ii<unitsArr.length; ii++)
+					   {				           
+					      if (unitsArr[ii].status == "init")
+                          {
+				            unitsArr[ii].pushGeoms( this.geomBody, this.geomHead, this.geomLeg1Top,
+                                   this.geomLeg2Top, this.geomLeg3Top, this.geomLegBottom, this.geomFly );						  
+						  }						  
+					   }					
+				 }				 
+			  }			  		   
+		   }		   
+		   
+		   // Constructor Unit ============================================
+		   
+		   function unitConstructor(posX,posY,posZ)
+		   {
+		   
+		      var cubeGeometry = new THREE.BoxGeometry(0.001, 0.001, 0.001);
+              var cubeBumpMaterial = new THREE.MeshPhongMaterial();
+              this.dummy = new THREE.Mesh(cubeGeometry, cubeBumpMaterial);			  
+              this.dummy.position.set(posX,posY,posZ);
+			  this.dummy.rotation.y = - 1.2;
+              scene.add(this.dummy);
+		   
+		      this.posX = posX;
+			  this.posY = posY;
+			  this.posZ = posZ;
+			  
+              this.geomHead = 0;
+              this.stepHead = 0;			  
+              this.geomBody = 0;
+              this.stepBody = 0;
+			  		  
+              this.geomLeg1Top = 0;
+              this.geomLeg2Top = 0;	
+              this.geomLeg3Top = 0;	
+              this.stepLegTop = 0;	
+			  
+              this.geomLeg1Bottom = 0;
+              this.geomLeg2Bottom = 0;	
+              this.geomLeg3Bottom = 0;				  
+              this.stepLegBottom = 0;	
+			  
+              this.geomFly = 0;	
+              this.stepFly = 0;				  
+				  
+			  this.status = "init";
+			  
+			  this.target = 0;
+			  this.targetVector = new THREE.Vector3(0,0,0);
+			  this.targetPoint = new THREE.Vector3(0,0,0);			  
+			  this.speedFly = 0.2;
+
+              this.pushGeoms = function(a,b,c1,c2,c3,d,e)
+              {
+			     this.geomBody = a.clone();
+				
+			     this.geomHead = b.clone();
+				 this.geomHead.position.x = 0;
+				 this.geomHead.position.y = 2.5;	
+				 this.geomHead.position.z = 0;	
+
+			     this.geomLeg1Top = c1.clone();
+				 this.geomLeg1Top.position.x = 0;
+				 this.geomLeg1Top.position.y = 0;	
+				 this.geomLeg1Top.position.z = 0;
+
+			     this.geomLeg2Top = c2.clone();
+				 this.geomLeg2Top.position.x = -0.2;
+				 this.geomLeg2Top.position.y = 0;	
+				 this.geomLeg2Top.position.z = 0;
+
+			     this.geomLeg3Top = c3.clone();
+				 this.geomLeg3Top.position.x = 0.2;
+				 this.geomLeg3Top.position.y = 0;	
+				 this.geomLeg3Top.position.z = 0;
+
+			     this.geomLeg1Bottom = d.clone();
+				 this.geomLeg1Bottom.position.x = 0;
+				 this.geomLeg1Bottom.position.y = 0.8;	
+				 this.geomLeg1Bottom.position.z = 2;
+
+			     this.geomLeg2Bottom = d.clone();
+				 this.geomLeg2Bottom.position.x = -1.6;
+				 this.geomLeg2Bottom.position.y = 0.8;	
+				 this.geomLeg2Bottom.position.z = -0.8;
+
+			     this.geomLeg3Bottom  = d.clone();
+				 this.geomLeg3Bottom.position.x = 1.6;
+				 this.geomLeg3Bottom.position.y = 0.8;	
+				 this.geomLeg3Bottom.position.z = -0.8;			 
+				 
+			     this.geomFly = e.clone();
+				 this.geomFly.position.x = 0;
+				 this.geomFly.position.y = 1.7;	
+				 this.geomFly.position.z = 0;					 
+				 				 
+                 this.dummy.add(this.geomBody);
+                 this.geomBody.add(this.geomHead);
+                 this.dummy.add(this.pointLight);
+				 
+				 this.addEye(0xc4fff6, -0.3, 0.03, 2 , 'leftEye', this.geomHead);	
+                 this.addEye(0xc4fff6, 0.3, 0.03, 2 , 'rightEye', this.geomHead);					 
+				 
+                 this.geomBody.add(this.geomFly);				 
+                 this.geomBody.add(this.geomLeg1Top);
+                 this.geomBody.add(this.geomLeg2Top);
+                 this.geomBody.add(this.geomLeg3Top);
+				 this.geomLeg1Top.add(this.geomLeg1Bottom);
+				 this.geomLeg2Top.add(this.geomLeg2Bottom);
+				 this.geomLeg3Top.add(this.geomLeg3Bottom);	
+
+                 this.status = "fly";				 
+			  } 
+
+              this.addEye = function (color, iX, iY, iZ , name, obj1) 
+			  {
+	
+	             this.geomHead = obj1;		  
+                 var bulbMat = new THREE.MeshBasicMaterial();
+                 bulbMat.color = new THREE.Color(color);
+				 this.eye = new THREE.Mesh(new THREE.SphereGeometry(0.04), bulbMat);
+                 this.eye.position.x = iX;
+                 this.eye.position.y = iY;
+                 this.eye.position.z = iZ;				 
+				 this.geomHead.add(this.eye);
+				 
+             }			  
+
+              this.update = function()
+              {	
+			  	  
+ 			  
+				  if (this.status == "stay")
+				  { 
+                     this.stayMovies();         					 
+				  }
+				  
+				  if ( Math.random()*1000<3 && this.status == "stay" )
+				  {
+				    this.status = "fly";
+				    this.geomBody.position.y = 0;					 
+				  }
+				  
+		          if (this.status == "stayNearCamera")
+                  {	
+                      this.stayMovies(); 				  
+			          if( Math.abs(camera.position.x - this.dummy.position.x) < 15 && Math.abs(camera.position.z - this.dummy.position.z)< 15 )
+				      {
+				         this.status = "prepearTofly";
+				      }
+					  if( Math.random()*1000<5 )
+					  {
+					      this.status = "prepearTofly";				  
+					  }
+				  }	
+
+				  if (this.status == "prepearTofly")
+				  {
+				     this.flyMovies();
+					 if (this.dummy.position.y < 10)
+					 {
+					    this.dummy.position.y += 0.8; 
+					 }
+					 if (this.dummy.position.y >= 10)
+					 {
+					   this.status = "fly";
+					 }				 
+				  } 				  
+				  
+                  if (this.status == "fly")
+                  {	
+                     this.flyMovies();	 
+                     if ( Math.random()*1000<100 )
+                     {
+					    this.addPlayerTarget();
+					 
+					 }					 
+                  }	 				  
+				  				  
+				  if (this.status == "gototarget")
+				  {	
+                     this.flyMovies();				  
+				     this.dummy.position.x +=  this.speedX;
+                     this.dummy.position.z +=  this.speedZ;
+					 
+					 this.speedY = (20 - this.dummy.position.y) / 100;
+					 
+					    if ( Math.abs(this.dummy.position.x - this.target.position.x) > this.distTarg/2 )
+                        {
+                           this.dummy.position.y +=  this.speedY;					 
+					    }else
+                        { 
+						   if (this.dummy.position.y - this.target.position.y - 10 > 0)
+						   {
+                              this.dummy.position.y -=  this.speedY;
+                           } 							  
+					    } 
+
+						
+                        if (  Math.abs(this.target.position.x - this.dummy.position.x)< 0.5 &&
+                              Math.abs(this.target.position.z - this.dummy.position.z)< 0.5 )	
+                        {
+						   this.status = "stay";
+				           this.geomBody.position.y =  -0.2; 
+                           this.dummy.position.y =  this.target.position.y + 8;						
+					    }
+                        if(Math.random()*1000<1)
+					    {
+					      this.status = "fly";
+					    }
+				
+				  }
+				  
+				  if (this.status == "gotoPlayer")
+				  {
+				        this.flyMovies();
+				        this.dummy.position.x +=  this.speedX;
+                        this.dummy.position.z +=  this.speedZ;	
+					    this.speedY = (20 - this.dummy.position.y) / 100;						
+				  
+					    if ( Math.abs(this.dummy.position.x - this.targetPoint.x) > this.distTarg/2 )
+                        {
+                           this.dummy.position.y +=  this.speedY;					 
+					    }else
+                        { 
+						   if (this.dummy.position.y - this.targetPoint.y  > 0)
+						   {
+                              this.dummy.position.y -=  this.speedY;
+                           } 							  
+					    } 
+                        if (  Math.abs(this.targetPoint.x - this.dummy.position.x)< 0.5 &&
+                              Math.abs(this.targetPoint.z - this.dummy.position.z)< 0.5 )	
+                        {
+						   this.status = "stayNearCamera";
+				           this.geomBody.position.y =  -0.2; 
+                           this.dummy.position.y =  this.targetPoint.y + 1;						
+					    }	
+    						
+				  }				  
+	          } 	
+              
+              this.addTarget = function(t)
+              {
+			     this.target = t;
+				 this.targetVector.x = this.target.position.x;
+				 this.targetVector.z = this.target.position.z;	
+				 this.targetVector.y = this.dummy.position.y;				 
+				 this.dummy.lookAt(this.targetVector);										 
+                 this.speedX = (this.target.position.x - this.dummy.position.x)/100; 
+                 this.speedZ = (this.target.position.z - this.dummy.position.z)/100;				 
+				 this.distTarg = Math.abs(this.target.position.x - this.dummy.position.x);
+				 this.speedY = 0.1;
+                 this.status = "gototarget";				 
+			  }	
+			  
+			  this.addPlayerTarget = function()
+			  {
+				     this.status =  "gotoPlayer";					  
+                     this.targetPoint.x = camera.position.x + Math.random()*60-15;
+                     this.targetPoint.z = camera.position.z + Math.random()*60-30;
+                     this.targetPoint.y = 0;	
+					 
+				     this.targetVector.x =  this.targetPoint.x
+				     this.targetVector.z = this.targetPoint.z 	
+				     this.targetVector.y = this.dummy.position.y;	
+					 
+				     this.dummy.lookAt(this.targetVector);
+                     this.speedX = (this.targetPoint.x - this.dummy.position.x)/100; 
+                     this.speedZ = (this.targetPoint.z - this.dummy.position.z)/100;	
+				 
+				     this.distTarg = Math.abs(this.targetPoint.x - this.dummy.position.x);
+				     this.speedY = 0.1;				  
+			  }
+              
+              this.stayMovies = function()
+              {
+                     this.stepHead += 0.1; 
+				     this.geomHead.rotation.y = -0.1 + (0.1 * Math.cos(this.stepHead) );
+					 if (Math.random()*100<5)
+					 {
+				        this.geomFly.rotation.x = Math.random()*0.6 - 0.3;
+                     } 						
+				     this.geomLeg1Top.rotation.x = -0.1;	
+				     this.geomLeg2Top.rotation.x = 0.3;	
+				     this.geomLeg3Top.rotation.x = 0.3;	
+				     this.geomLeg1Bottom.rotation.x = -0.4;
+				     this.geomLeg2Bottom.rotation.z = -0.4;	
+				     this.geomLeg3Bottom.rotation.z = 0.4;
+					 
+					 if ( Math.random()*30<1 )
+					 {
+					   this.targetVector.x = camera.position.x;
+					   this.targetVector.z = camera.position.z;		
+					   this.targetVector.y = this.dummy.position.y;	
+ 					   this.dummy.lookAt(this.targetVector);  
+					 }			   
+			  }
+
+              this.flyMovies = function()
+              {
+                     this.stepBody += 0.1; 				  
+				     this.geomBody.position.y = ( Math.cos(this.stepBody) );					 
+                     this.stepHead += 0.1; 					 
+				     this.geomHead.rotation.y = -0.1 + (0.1 * Math.cos(this.stepHead) );
+				     this.geomHead.rotation.x = -0.1 + (0.1 * Math.sin(this.stepHead) );
+                     this.stepFly += 2; 
+				     this.geomFly.rotation.x = 0 + (0.4 * Math.sin(this.stepFly) );					 
+                     this.stepLegTop += 0.05; 			     	 
+				     this.geomLeg1Top.rotation.x = 0.2 + (0.2 * Math.sin(this.stepLegTop));
+				     this.geomLeg2Top.rotation.x = 0.2 + (0.2 * Math.sin(this.stepLegTop));	
+				     this.geomLeg3Top.rotation.x = 0.2 + (0.2 * Math.sin(this.stepLegTop));
+                     this.stepLegBottom += 0.05; 
+				     this.geomLeg1Bottom.rotation.x = 0.2 + (0.2 * Math.sin(this.stepLegBottom));
+				     this.geomLeg2Bottom.rotation.z = 0.2 + (0.2 * Math.sin(this.stepLegBottom));	
+				     this.geomLeg3Bottom.rotation.z = -0.2 + (0.2 * Math.sin(this.stepLegBottom));			  
+              }  			  
+			  
+		   }
+
+            // Constructor Exit =============================================
+
+		    function exitConstructor()
+            {/*
+			   this.geomHead = 0;
+               this.status = "none";
+			   this.arrHeads = [];
+			   
+			   this.pushGeomHead = function(param)
+			   {
+			       this.geomHead = param.clone();
+				   this.status = "makeTotem";
+			   }
+			   
+			   this.update = function()
+			   {  				   
+				  if ( ( this.geomHead != 0 )&&( this.status = "makeTotem" ) )
+				  {
+				     this.status = "ready";
+					 var head;
+				     for(i = 0; i<3; i++)
+                     {
+					    for ( ii = 0; ii < 3; ii++ )
+						{
+						   head = this.geomHead.clone();
+						   head.position.x = 0;
+						   head.position.y = 5*i;
+						   head.position.z = 5*ii;
+						   scene.add(head);
+						   this.arrHeads.push(head);
+						   //scene.add(  this.arrHeads[ this.arrHeads.length ] );
+						}
+					 }					 
+				  }
+				  if (this.status == "ready")
+				  {
+				    //  for( ai = 0; ai < this.arrHeads.length; ai++ )
+				    //  {
+				    //    this.arrHeads[ai].lookAt(camera.position);
+				    // }
+				  }
+			   }	*/ 
+			}			
+  
+			// SETUP ========================================================
+
+			function setup() {
+				document.body.style.backgroundColor = colorEnv;
+				setupThreeJS();
+				setupWorld();
+
+				requestAnimationFrame(function animate() {
+					draw();
+
+					frameDelta += clock.getDelta();
+					while (frameDelta >= INV_MAX_FPS) 
+					{				
+				        player.update(INV_MAX_FPS);						
+						frameDelta -= INV_MAX_FPS;
+					}
+
+					requestAnimationFrame( animate );
+				});
+			}
+
+			function setupThreeJS() 
+			{
+				scene = new THREE.Scene();
+			    scene.fog = new THREE.FogExp2(colorEnv, 0.03);
+
+				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera.position.x = -600;			
+				camera.position.y = 4;
+				camera.position.z = 30;
+              
+
+				renderer = new THREE.WebGLRenderer({antialias: true});
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setClearColorHex(colorEnv);					
+				renderer.shadowMapEnabled = true;
+				document.body.appendChild( renderer.domElement );
+
+               var ambientLight = new THREE.AmbientLight(0x2e4a46);
+               ambientLight.name = 'ambientLight';
+               scene.add(ambientLight);
+				
+                var dirLight = new THREE.DirectionalLight(0xc4fff6);
+                dirLight.position.set(0, 20, 15);
+                scene.add(dirLight);
+
+
+				clock = new THREE.Clock();
+				player = new THREE.FirstPersonControls(camera);
+				player.movementSpeed = 100;
+				player.lookSpeed = 0.1;
+			}
+
+			function setupWorld()
+			{
+               geom = new geomStorageConstructor();
+				
+	           loader = new THREE.OBJMTLLoader();
+               loader.load("01body.obj", "1.mtl", function (obj) 
+			   {
+                  geom.pushGeomBody(obj);
+                  obj = null;				  
+			   });	
+			  
+	           loader2 = new THREE.OBJMTLLoader();			  
+               loader2.load("02head.obj", "1.mtl", function (obj1) 
+			   {
+                  geom.pushGeomHead(obj1);
+                  obj1 = null;				  
+			   });	
+			   
+	           loader3 = new THREE.OBJMTLLoader();
+               loader3.load("03leg1-1.obj", "1.mtl", function (obj2) 
+			   {
+                  geom.pushGeomLeg1Top(obj2);	
+                  obj2 = null;				  
+			   });	
+			   
+	           loader3a = new THREE.OBJMTLLoader();
+               loader3a.load("03leg1-2.obj", "1.mtl", function (obj2) 
+			   {
+                  geom.pushGeomLeg2Top(obj2);	
+                  obj2 = null;				  
+			   });	
+
+	           loader3b = new THREE.OBJMTLLoader();
+               loader3b.load("03leg1-3.obj", "1.mtl", function (obj2) 
+			   {
+                  geom.pushGeomLeg3Top(obj2);	
+                  obj2 = null;				  
+			   });				   
+
+	           loader4 = new THREE.OBJMTLLoader();
+               loader4.load("03leg2.obj", "1.mtl", function (obj3) 
+			   {
+                  geom.pushGeomLegBottom(obj3);	
+                  obj3 = null;				  
+			   });	
+
+	           loader5 = new THREE.OBJMTLLoader();
+               loader5.load("04fly.obj", "1.mtl", function (obj4) 
+			   {
+                  geom.pushGeomFly(obj4);
+                  obj4 = null;  				  
+			   });	
+
+               var floorGeometry = new THREE.PlaneGeometry(1000, 1000, 5, 5);
+               var floorMaterial = new THREE.MeshPhongMaterial();
+               floorMaterial.map = THREE.ImageUtils.loadTexture("f.png");
+               floorMaterial.map.wrapS = floorMaterial.map.wrapT = THREE.RepeatWrapping;
+               floorMaterial.map.repeat.set(40,40); 	
+               floorMaterial.bumpMap = THREE.ImageUtils.loadTexture("fb.png");
+               floorMaterial.bumpMap.wrapS = floorMaterial.bumpMap.wrapT = THREE.RepeatWrapping;
+               floorMaterial.bumpMap.repeat.set(40, 40);		
+               var floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
+               floorMesh.receiveShadow = true;
+			   floorMesh.position.x = -300; 
+               floorMesh.position.y = -1.3;		
+               floorMesh.rotation.x = -0.5 * Math.PI;
+               scene.add(floorMesh); 
+			
+				var cubeGeometry =  new THREE.CylinderGeometry( 4, 3 , 12, 6, 2 );			
+               // var cubeGeometry = new THREE.BoxGeometry(7, 7, 5);
+                var cubeBumpMaterial = new THREE.MeshPhongMaterial();
+                cubeBumpMaterial.map = THREE.ImageUtils.loadTexture("f.png");
+                cubeBumpMaterial.bumpMap = THREE.ImageUtils.loadTexture("fb.png");
+                bumpCube = new THREE.Mesh(cubeGeometry, cubeBumpMaterial);	
+                bumpCube.position.set(20,0,0);
+				//bumpCube.scale.x = -1;
+ 
+                for (i=0; i<8; i++)
+                {
+				  cube = bumpCube.clone();
+                  cube.position.set( Math.random()*20+15 ,5,(-50) + Math.random()*100); 
+	              scene.add( cube ); 
+                  arrCubes.push( cube ); 				  
+				}
+				
+				 var pointLight = new THREE.PointLight();
+                    pointLight.color = new THREE.Color(0xc4fff6);
+                    pointLight.intensity = 40;
+                    pointLight.distance = 40;		
+                    pointLight.position.x = 0; 	
+                    pointLight.position.y = 6;				   
+				    scene.add(pointLight); 
+                				
+			} 
+			
+			// DRAW =========================================================
+
+			function draw() 
+			{  
+                   if ( player.target.x < -620 || player.target.x > 220)
+                    {  
+				       player.moveForward = false;	
+				    }	
+                    if ( player.target.z < -420 || player.target.z > 420)
+                    {    
+				       player.moveForward = false;	
+				    }
+					
+                   if ( Math.abs(camera.position.x) < 3 && Math.abs(camera.position.x) < 3 && gameStatus == "play"  )
+                    {  
+				       player.moveForward = false;
+                       camera.position.x = 0;
+                       camera.position.z = 0;	
+                       gameStatus = "endMessage";					   
+				    }
+
+                   if ( gameStatus == "endMessage")	
+                   {
+		              topMessage.style.color = "#ffffff";					   
+				      topMessage.innerHTML = info2; 	
+	                  setTimeout("deleteText2()", 6000);				   
+				      gameStatus = "end";
+				   }
+
+                   if (  gameStatus == "end" )
+                   {
+				       player.moveForward = false;				   
+				   }				   
+					
+					
+                  for (i=0; i<unitsArr.length; i++)
+				  {
+	                 unitsArr[i].update();
+
+					 if( Math.random()*100 < 5 )
+					 {
+					 	if (unitsArr[i].status == "fly")
+				        {
+                           unitsArr[i].addTarget( arrCubes[ Math.floor( Math.random()*arrCubes.length ) ] );						
+				        }	 
+					 }				 
+				  }	
+
+                  if ( Math.random()*100 < 3 && unitsArr.length < 8)
+                  {
+				     unit1 = new unitConstructor( 60, 1, unitsArr.length*8 );	
+			         unitsArr.push(unit1); 			  
+				  }
+			 			   
+                  geom.update();			  
+		 
+		     	  renderer.render( scene, camera );
+		   	}
+
+			// RUN ==========================================================
+
+			setup();
+			
+		</script>
+		<div id = "message">test </div>
+	</body>
+</html>
