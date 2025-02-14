@@ -1,7 +1,6 @@
 (() => {
   /*********** Глобальные переменные и состояния *****************************/
 
-  const START_TYPE = 'list'
   const START_TAG = 'code'
   const NUM_NODES_IN_LIST = 24
   const OFFSET_W = 5
@@ -216,15 +215,15 @@
     appData = await loadJson(PATH_TO_DATA)
 
     let { page, type, id } = parseUrlParams()
-    page = page || 0
-    type = type || START_TYPE
-    id = id || START_TAG
+    if (!page) page = 0
+    if (!type) type = 'list'
+    if (!id) id = 'code'
 
     redrawMainMenu(type, id)
     if (type === 'node') {
       await drawNode(id)
     }
-    if (type === 'list') {
+    if (type === 'list') {   
         await drawList(id, page)
     }
     footer.removeChild(loader)
